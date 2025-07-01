@@ -1,9 +1,16 @@
 {
-  "title": "Hundesystem",
-  "step": {
-    "user": {
-      "title": "Hundesystem einrichten",
-      "description": "Bitte gib einen Namen für die Konfiguration ein."
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hundesystem Konfiguration",
+        "description": "Wähle die gewünschten Optionen für das Hundesystem.",
+        "data": {
+          "tuersensor": "Türsensor",
+          "hundeliste": "Hundeliste (kommagetrennt)",
+          "push_geraete": "Push-Empfänger",
+          "mahlzeiten": "Aktive Mahlzeiten"
+        }
+      }
     }
   }
 }

@@ -1,9 +1,9 @@
-set_status:
-  description: 'Setzt den Status eines Hundes (z. B. draußen, gegessen)'
+track_gassi:
+  description: Erfasst eine Gassi-Auslösung über den Türsensor
   fields:
-    name:
-      description: 'Name des Hundes'
-      example: 'Rex'
-    status:
-      description: 'Neuer Status'
-      example: 'Gassi erledigt' 
+    sensor:
+      description: Türsensor
+      example: binary_sensor.tuersensor
+    hundeliste:
+      description: Liste der Hundenamen
+      example: "rex, bella"
