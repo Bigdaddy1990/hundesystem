@@ -5,6 +5,5 @@
   "config_flow": true,
   "documentation": "https://github.com/Bigdaddy1990/hundesystem",
   "requirements": [],
-  "dependencies": [],
   "codeowners": ["@Bigdaddy1990"]
 }

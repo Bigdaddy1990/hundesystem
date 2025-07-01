@@ -2,8 +2,8 @@
   "title": "Hundesystem",
   "step": {
     "user": {
-      "title": "Einrichtung starten",
-      "description": "Wähle die Sensoren und Optionen für das Hundesystem."
+      "title": "Hundesystem einrichten",
+      "description": "Bitte gib einen Namen für die Konfiguration ein."
     }
   }
 }

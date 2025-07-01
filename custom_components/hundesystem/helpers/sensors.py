@@ -1,1 +1,1 @@
-# Helfer zur Erstellung von Sensoren & Input Helpern
+# Sensor-Registrierung, automatische Erstellung

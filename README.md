@@ -1,15 +1,13 @@
-# 🐶 Hundesystem
+# 🐶 Hundesystem für Home Assistant
 
-Integration zur Verwaltung von Haustieren in Home Assistant.
-
-## Funktionen
-- Gassi-Zeiten
-- Fütterung
-- Push-Benachrichtigungen
-- Besucherhunde
-- Adminpanel
+- Gassi-Protokolle per Türsensor
+- Fütterungserinnerung (Frühstück, Mittag, Abend, Leckerli)
+- Push-Benachrichtigung nur an Anwesende
+- Besucherhunde & Gerätegruppen
+- Dashboard & Adminpanel
+- Mushroom Template kompatibel
 
 ## Installation
-1. Über HACS hinzufügen
-2. Integration starten
-3. Sensoren & Optionen wählen
+1. ZIP in GitHub veröffentlichen
+2. HACS: benutzerdefinierte Quelle → Integration hinzufügen
+3. Home Assistant neu starten → 'Hundesystem' konfigurieren

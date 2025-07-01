@@ -1,7 +1,4 @@
 # Hundesystem
 
-Verwaltungssystem für Haustiere in Home Assistant.
-- Gassi-Protokolle
-- Fütterungserinnerungen
-- Besucherhunde
-- Adminpanel & Statistiken
+Komplette Haustier-Verwaltung für Home Assistant.
+- Gassi, Fütterung, Statistiken, Push, Besucher, Adminpanel.

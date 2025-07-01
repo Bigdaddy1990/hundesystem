@@ -1,2 +1,9 @@
 set_status:
-  description: 'Setzt den Status eines Hundes'
+  description: 'Setzt den Status eines Hundes (z. B. draußen, gegessen)'
+  fields:
+    name:
+      description: 'Name des Hundes'
+      example: 'Rex'
+    status:
+      description: 'Neuer Status'
+      example: 'Gassi erledigt' 

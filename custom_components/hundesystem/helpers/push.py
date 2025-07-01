@@ -1,1 +1,1 @@
-# Benachrichtigungslogik mit Personenerkennung & Fallback
+# Logik zur Push-Versendung mit Anwesenheitsprüfung
