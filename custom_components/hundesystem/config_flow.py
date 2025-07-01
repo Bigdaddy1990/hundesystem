@@ -1,34 +1,45 @@
-import logging
+{
+  "domain": "hundesystem",
+  "name": "Hundesystem",
+  "version": "1.0.2",
+  "config_flow": true,
+  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
+  "requirements": ["voluptuous-serialize==2.5.0"],
+  "dependencies": [],
+  "codeowners": ["@Bigdaddy1990"]
+}
+
+
+# 3. custom_components/hundesystem/config_flow.py
 import voluptuous as vol
-
 from homeassistant import config_entries
-from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.const import CONF_NAME
+from .const import DOMAIN, CONF_PUSH_DEVICES, CONF_PERSON_TRACKING, CONF_DASHBOARD
 
-from .const import DOMAIN, CONF_SENSOR_TUER, CONF_HUNDELISTE, CONF_PUSH_GERAETE, CONF_MAHLZEITEN
-from .helpers.helper_creator import get_all_door_sensors, get_all_push_devices, get_all_persons
+CONFIG_SCHEMA = vol.Schema({
+    vol.Required(CONF_NAME): str,
+    vol.Optional(CONF_PUSH_DEVICES): vol.All(list),
+    vol.Optional(CONF_PERSON_TRACKING, default=True): bool,
+    vol.Optional(CONF_DASHBOARD, default=True): bool,
+})
 
-_LOGGER = logging.getLogger(__name__)
-
-
-class HundesystemConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HundeSystemConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="Hundesystem", data=user_input)
+            existing_entries = self._async_current_entries()
+            for entry in existing_entries:
+                if entry.data.get(CONF_NAME) == user_input.get(CONF_NAME):
+                    errors[CONF_NAME] = "already_configured"
+                    break
+            if not errors:
+                return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
 
-        sensors = await get_all_door_sensors(self.hass)
-        personen = await get_all_persons(self.hass)
-        push_devices = await get_all_push_devices(self.hass)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=CONFIG_SCHEMA,
+            errors=errors
+        )
 
-        schema = vol.Schema({
-            vol.Required(CONF_SENSOR_TUER): vol.In(sensors),
-            vol.Optional(CONF_HUNDELISTE): str,
-            vol.Optional(CONF_PUSH_GERAETE): vol.In(push_devices),
-            vol.Optional(CONF_MAHLZEITEN, default=["frühstück", "abendessen"]): vol.All([str])
-        })
-
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
