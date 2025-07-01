@@ -1,16 +1,20 @@
 {
+  "title": "Hundesystem",
   "config": {
     "step": {
       "user": {
-        "title": "Hundesystem Konfiguration",
-        "description": "Wähle die gewünschten Optionen für das Hundesystem.",
+        "title": "Hundeintegration einrichten",
+        "description": "Wähle Optionen für dein Hundesystem.",
         "data": {
-          "tuersensor": "Türsensor",
-          "hundeliste": "Hundeliste (kommagetrennt)",
-          "push_geraete": "Push-Empfänger",
-          "mahlzeiten": "Aktive Mahlzeiten"
+          "name": "Name des Hundesystems",
+          "push_devices": "Geräte für Push-Benachrichtigungen",
+          "use_person_tracking": "Personen-Tracking verwenden",
+          "create_dashboard": "Dashboard automatisch erstellen"
         }
       }
+    },
+    "abort": {
+      "already_configured": "Diese Integration ist bereits eingerichtet."
     }
   }
 }
