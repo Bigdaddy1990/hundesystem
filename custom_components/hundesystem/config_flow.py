@@ -1,0 +1,1 @@
+# Vollständiger config_flow mit Türsensor-Auswahl etc.

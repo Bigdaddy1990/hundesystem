@@ -1,0 +1,10 @@
+{
+  "name": "Hundesystem",
+  "content_in_root": false,
+  "domains": ["hundesystem"],
+  "country": "de",
+  "homeassistant": "2024.6.0",
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "hundesystem_final_release_v1.0.0.zip"
+}

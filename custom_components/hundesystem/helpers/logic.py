@@ -1,0 +1,1 @@
+# Gassi-/Fütterungslogik, Besuchshunde, Tageslogik

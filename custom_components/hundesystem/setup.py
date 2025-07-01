@@ -1,0 +1,1 @@
+# Erstellt Helfer und initialisiert Konfiguration

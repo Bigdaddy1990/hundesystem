@@ -1,0 +1,10 @@
+{
+  "domain": "hundesystem",
+  "name": "Hundesystem",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@Bigdaddy1990"]
+}
