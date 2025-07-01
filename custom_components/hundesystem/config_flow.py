@@ -1,27 +1,21 @@
-{
-  "domain": "hundesystem",
-  "name": "Hundesystem",
-  "version": "1.0.2",
-  "config_flow": true,
-  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
-  "requirements": ["voluptuous-serialize==2.5.0"],
-  "dependencies": [],
-  "codeowners": ["@Bigdaddy1990"]
-}
-
-
-# 3. custom_components/hundesystem/config_flow.py
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
+from homeassistant.helpers import selector
 from .const import DOMAIN, CONF_PUSH_DEVICES, CONF_PERSON_TRACKING, CONF_DASHBOARD
+
+CONF_DOOR_SENSOR = "door_sensor"
 
 CONFIG_SCHEMA = vol.Schema({
     vol.Required(CONF_NAME): str,
+    vol.Optional(CONF_DOOR_SENSOR): selector.selector({
+        "entity": {"domain": "binary_sensor"}
+    }),
     vol.Optional(CONF_PUSH_DEVICES): vol.All(list),
     vol.Optional(CONF_PERSON_TRACKING, default=True): bool,
     vol.Optional(CONF_DASHBOARD, default=True): bool,
 })
+
 
 class HundeSystemConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
