@@ -1,4 +1,17 @@
 {
   "title": "Hundesystem",
-  "description": "Verwaltungssystem für Haustiere mit Erinnerungen, Sensorintegration und Rückfragen"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hundeintegration einrichten",
+        "description": "Wähle die gewünschten Optionen für dein Hundesystem.",
+        "data": {
+          "name": "Name",
+          "push_devices": "Geräte für Push-Benachrichtigungen",
+          "use_person_tracking": "Personen-Tracking verwenden",
+          "create_dashboard": "Dashboard automatisch erstellen"
+        }
+      }
+    }
+  }
 }
