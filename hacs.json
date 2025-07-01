@@ -1,1 +1,9 @@
-{  "name": "Hundesystem",  "content_in_root": false,  "domains": ["hundesystem"],  "country": "de",  "homeassistant": "2024.6.0",  "iot_class": "local_push",  "render_readme": true}
+{
+  "name": "Hundesystem",
+  "content_in_root": false,
+  "domains": ["automation", "binary_sensor", "sensor", "input_boolean", "counter"],
+  "country": "de",
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "hundesystem.zip"
+}
