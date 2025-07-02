@@ -1309,3 +1309,22 @@ async def async_setup_statistics(hass: HomeAssistant, dog_name: str):
                 blocking=True,
             )
             _LOGGER.info("Utility-Meter erzeugt: %s", sensor_id)
+
+
+class HundesystemFeedingProgressSensor(SensorEntity):
+    def __init__(self, hass, config_entry, dog_name):
+        self._attr_name = f"{dog_name} Fütterungsfortschritt"
+        self._attr_unique_id = f"{dog_name}_feeding_progress"
+        self._state = "unbekannt"
+
+    @property
+    def name(self):
+        return self._attr_name
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def state(self):
+        return self._state

@@ -843,8 +843,12 @@ async def _save_dashboard(hass: HomeAssistant, filename: str, content: str) -> N
     dashboard_file = os.path.join(dashboard_path, f"{filename}.yaml")
     
     try:
-        with open(dashboard_file, "w", encoding="utf-8") as f:
+    from functools import partial
+    def _write_dashboard_file(path, content):
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
+
+    await hass.async_add_executor_job(partial(_write_dashboard_file, dashboard_file, content))
         
         _LOGGER.info("Dashboard saved: %s", dashboard_file)
         
