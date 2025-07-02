@@ -3,9 +3,17 @@
   "name": "Hundesystem",
   "version": "1.0.0",
   "documentation": "https://github.com/Bigdaddy1990/hundesystem",
+  "issue_tracker": "https://github.com/Bigdaddy1990/hundesystem/issues",
   "dependencies": [],
   "codeowners": ["@Bigdaddy1990"],
   "requirements": [],
-  "iot_class": "local_push",
-  "config_flow": true
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "service",
+  "after_dependencies": [
+    "input_boolean",
+    "counter",
+    "input_datetime", 
+    "input_text"
+  ]
 }
