@@ -21,6 +21,3 @@ jobs:
           zip -r ../hundesystem.zip custom_components
           cd ..
           rm -rf hacs_release
-
-      - name: Print tag ref
-        run: echo "Tag: ${{ github.ref }}"
