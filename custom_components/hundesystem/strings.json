@@ -1,0 +1,516 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hundesystem konfigurieren",
+        "description": "Richten Sie Ihr Hundesystem ein. Geben Sie einen Namen für Ihren Hund ein und wählen Sie optional Benachrichtigungsgeräte aus.",
+        "data": {
+          "dog_name": "Name des Hundes",
+          "push_devices": "Push-Benachrichtigungsgeräte",
+          "person_tracking": "Personen-Tracking verwenden",
+          "create_dashboard": "Dashboard automatisch erstellen"
+        },
+        "data_description": {
+          "dog_name": "Ein eindeutiger Name für Ihren Hund (z.B. 'rex', 'bella')",
+          "push_devices": "Wählen Sie Geräte für Push-Benachrichtigungen aus",
+          "person_tracking": "Automatische Erkennung anwesender Personen für Benachrichtigungen",
+          "create_dashboard": "Erstellt automatisch ein vorkonfiguriertes Dashboard"
+        }
+      },
+      "advanced": {
+        "title": "Erweiterte Einstellungen",
+        "description": "Konfigurieren Sie erweiterte Funktionen für Ihr Hundesystem",
+        "data": {
+          "door_sensor": "Türsensor für automatische Erkennung",
+          "reset_time": "Tägliche Reset-Zeit",
+          "enable_health_monitoring": "Gesundheitsüberwachung aktivieren",
+          "enable_weather_integration": "Wetter-Integration aktivieren",
+          "enable_visitor_mode": "Besuchsmodus aktivieren",
+          "enable_emergency_features": "Notfall-Funktionen aktivieren"
+        },
+        "data_description": {
+          "door_sensor": "Sensor zur automatischen Erkennung von Türbewegungen",
+          "reset_time": "Uhrzeit für den täglichen Reset aller Statistiken",
+          "enable_health_monitoring": "Erweiterte Gesundheitsüberwachung und -analysen",
+          "enable_weather_integration": "Wetterbasierte Empfehlungen und Warnungen",
+          "enable_visitor_mode": "Modus für Hundesitter oder Besucher",
+          "enable_emergency_features": "Notfall-Benachrichtigungen und -kontakte"
+        }
+      },
+      "feeding_schedule": {
+        "title": "Fütterungszeiten",
+        "description": "Legen Sie die täglichen Fütterungszeiten für {dog_name} fest",
+        "data": {
+          "morning_time": "Frühstück Zeit",
+          "lunch_time": "Mittagessen Zeit",
+          "evening_time": "Abendessen Zeit",
+          "snack_time": "Leckerli Zeit",
+          "enable_feeding_reminders": "Fütterungserinnerungen aktivieren",
+          "auto_increment_counters": "Zähler automatisch erhöhen",
+          "strict_feeding_schedule": "Strikten Fütterungsplan befolgen"
+        },
+        "data_description": {
+          "morning_time": "Uhrzeit für das Frühstück",
+          "lunch_time": "Uhrzeit für das Mittagessen",
+          "evening_time": "Uhrzeit für das Abendessen",
+          "snack_time": "Uhrzeit für Leckerlis",
+          "enable_feeding_reminders": "Automatische Erinnerungen zu Fütterungszeiten",
+          "auto_increment_counters": "Zähler automatisch beim Füttern erhöhen",
+          "strict_feeding_schedule": "Warnungen bei verspäteten Fütterungen"
+        }
+      },
+      "contacts": {
+        "title": "Kontakte und Informationen",
+        "description": "Notfallkontakte und wichtige Informationen für {dog_name}",
+        "data": {
+          "emergency_contact_name": "Notfallkontakt Name",
+          "emergency_contact_phone": "Notfallkontakt Telefon",
+          "vet_name": "Tierarzt Name",
+          "vet_phone": "Tierarzt Telefon",
+          "vet_address": "Tierarzt Adresse",
+          "backup_contact_name": "Ersatzkontakt Name",
+          "backup_contact_phone": "Ersatzkontakt Telefon",
+          "microchip_id": "Mikrochip ID",
+          "insurance_company": "Versicherung",
+          "insurance_number": "Versicherungsnummer"
+        },
+        "data_description": {
+          "emergency_contact_name": "Name des primären Notfallkontakts",
+          "emergency_contact_phone": "Telefonnummer des Notfallkontakts",
+          "vet_name": "Name des Tierarztes",
+          "vet_phone": "Telefonnummer des Tierarztes",
+          "vet_address": "Adresse der Tierarztpraxis",
+          "backup_contact_name": "Name eines Ersatzkontakts",
+          "backup_contact_phone": "Telefonnummer des Ersatzkontakts",
+          "microchip_id": "Mikrochip-Identifikationsnummer",
+          "insurance_company": "Name der Hundeversicherung",
+          "insurance_number": "Versicherungspolice-Nummer"
+        }
+      }
+    },
+    "error": {
+      "invalid_dog_name": "Ungültiger Hundename. Verwenden Sie nur Buchstaben, Zahlen und Unterstriche.",
+      "already_configured": "Ein Hundesystem mit diesem Namen ist bereits konfiguriert.",
+      "too_many_dogs": "Maximale Anzahl von Hunden erreicht.",
+      "cannot_connect": "Verbindung zu Benachrichtigungsdiensten fehlgeschlagen.",
+      "invalid_sensor": "Ungültiger oder nicht verfügbarer Sensor.",
+      "invalid_feeding_times": "Ungültige Fütterungszeiten angegeben.",
+      "unknown": "Unbekannter Fehler aufgetreten."
+    },
+    "abort": {
+      "already_configured": "Integration ist bereits für diesen Hund konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hundesystem Optionen für {dog_name}",
+        "description": "Ändern Sie die Einstellungen für Ihr Hundesystem",
+        "data": {
+          "push_devices": "Benachrichtigungsgeräte",
+          "person_tracking": "Personen-Tracking aktivieren",
+          "create_dashboard": "Dashboard automatisch erstellen",
+          "door_sensor": "Türsensor",
+          "reset_time": "Tägliche Reset-Zeit"
+        },
+        "data_description": {
+          "push_devices": "Wählen Sie Geräte für Push-Benachrichtigungen aus",
+          "person_tracking": "Erweiterte Features für Personenverfolgung",
+          "create_dashboard": "Erstellt automatisch ein Mushroom-Dashboard",
+          "door_sensor": "Sensor zur automatischen Erkennung",
+          "reset_time": "Uhrzeit für den täglichen Reset"
+        }
+      }
+    }
+  },
+  "services": {
+    "trigger_feeding_reminder": {
+      "name": "Fütterungserinnerung senden",
+      "description": "Sendet eine Benachrichtigung zur Fütterungserinnerung für einen oder alle Hunde",
+      "fields": {
+        "meal_type": {
+          "name": "Mahlzeit",
+          "description": "Art der Mahlzeit (morning, lunch, evening, snack)"
+        },
+        "message": {
+          "name": "Nachricht",
+          "description": "Benutzerdefinierte Erinnerungsnachricht"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        }
+      }
+    },
+    "daily_reset": {
+      "name": "Täglicher Reset",
+      "description": "Setzt alle Tagesstatistiken für einen oder alle Hunde zurück",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        }
+      }
+    },
+    "send_notification": {
+      "name": "Benachrichtigung senden", 
+      "description": "Sendet eine benutzerdefinierte Benachrichtigung",
+      "fields": {
+        "title": {
+          "name": "Titel",
+          "description": "Titel der Benachrichtigung"
+        },
+        "message": {
+          "name": "Nachricht",
+          "description": "Inhalt der Benachrichtigung"
+        },
+        "target": {
+          "name": "Ziel",
+          "description": "Spezifisches Benachrichtigungsziel"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        },
+        "data": {
+          "name": "Zusätzliche Daten",
+          "description": "Zusätzliche Daten für die Benachrichtigung"
+        }
+      }
+    },
+    "set_visitor_mode": {
+      "name": "Besuchsmodus setzen",
+      "description": "Aktiviert oder deaktiviert den Besuchsmodus",
+      "fields": {
+        "enabled": {
+          "name": "Aktiviert",
+          "description": "Besuchsmodus aktivieren oder deaktivieren"
+        },
+        "visitor_name": {
+          "name": "Besuchername",
+          "description": "Name des Besuchers oder Hundesitters"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        }
+      }
+    },
+    "log_activity": {
+      "name": "Aktivität protokollieren",
+      "description": "Protokolliert eine Hundeaktivität mit optionalen Details",
+      "fields": {
+        "activity_type": {
+          "name": "Aktivitätstyp",
+          "description": "Art der Aktivität"
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Dauer der Aktivität in Minuten"
+        },
+        "notes": {
+          "name": "Notizen",
+          "description": "Zusätzliche Notizen zur Aktivität"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        }
+      }
+    },
+    "add_dog": {
+      "name": "Neuen Hund hinzufügen",
+      "description": "Fügt einen neuen Hund zum System hinzu",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des neuen Hundes"
+        },
+        "push_devices": {
+          "name": "Push-Geräte",
+          "description": "Liste der Benachrichtigungsgeräte"
+        },
+        "door_sensor": {
+          "name": "Türsensor",
+          "description": "Sensor zur automatischen Erkennung"
+        },
+        "create_dashboard": {
+          "name": "Dashboard erstellen",
+          "description": "Automatisch ein Dashboard erstellen"
+        }
+      }
+    },
+    "test_notification": {
+      "name": "Test-Benachrichtigung",
+      "description": "Sendet eine Test-Benachrichtigung zur Überprüfung",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (optional)"
+        }
+      }
+    },
+    "emergency_contact": {
+      "name": "Notfallkontakt",
+      "description": "Sendet eine Notfallbenachrichtigung",
+      "fields": {
+        "emergency_type": {
+          "name": "Art des Notfalls",
+          "description": "Typ des Notfalls"
+        },
+        "message": {
+          "name": "Notfallnachricht",
+          "description": "Beschreibung des Notfalls"
+        },
+        "location": {
+          "name": "Standort",
+          "description": "Aktueller Standort"
+        },
+        "contact_vet": {
+          "name": "Tierarzt kontaktieren",
+          "description": "Auch den Tierarzt benachrichtigen"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des betroffenen Hundes"
+        }
+      }
+    },
+    "health_check": {
+      "name": "Gesundheitscheck",
+      "description": "Führt eine Bewertung des Gesundheitszustands durch",
+      "fields": {
+        "check_type": {
+          "name": "Art der Untersuchung",
+          "description": "Typ des Gesundheitschecks"
+        },
+        "notes": {
+          "name": "Beobachtungen",
+          "description": "Spezielle Beobachtungen oder Symptome"
+        },
+        "temperature": {
+          "name": "Körpertemperatur",
+          "description": "Gemessene Körpertemperatur in °C"
+        },
+        "weight": {
+          "name": "Gewicht",
+          "description": "Aktuelles Gewicht in kg"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des zu untersuchenden Hundes"
+        }
+      }
+    },
+    "schedule_reminder": {
+      "name": "Erinnerung planen",
+      "description": "Plant eine zukünftige Erinnerung",
+      "fields": {
+        "reminder_type": {
+          "name": "Erinnerungstyp",
+          "description": "Art der Erinnerung"
+        },
+        "scheduled_time": {
+          "name": "Geplante Zeit",
+          "description": "Datum und Uhrzeit für die Erinnerung"
+        },
+        "message": {
+          "name": "Erinnerungsnachricht",
+          "description": "Text der Erinnerung"
+        },
+        "repeat": {
+          "name": "Wiederholen",
+          "description": "Erinnerung wiederholen"
+        },
+        "repeat_interval": {
+          "name": "Wiederholungsintervall",
+          "description": "Wie oft wiederholen"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des Hundes für die Erinnerung"
+        }
+      }
+    },
+    "update_dog_info": {
+      "name": "Hundeinformationen aktualisieren",
+      "description": "Aktualisiert grundlegende Informationen über den Hund",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des Hundes"
+        },
+        "breed": {
+          "name": "Rasse",
+          "description": "Rasse des Hundes"
+        },
+        "age_years": {
+          "name": "Alter (Jahre)",
+          "description": "Alter in Jahren"
+        },
+        "weight": {
+          "name": "Gewicht",
+          "description": "Aktuelles Gewicht in kg"
+        },
+        "microchip_id": {
+          "name": "Mikrochip ID",
+          "description": "Mikrochip-Identifikationsnummer"
+        },
+        "vet_contact": {
+          "name": "Tierarzt Kontakt",
+          "description": "Kontaktinformationen des Tierarztes"
+        },
+        "emergency_contact": {
+          "name": "Notfallkontakt",
+          "description": "Notfallkontakt"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "feeding_complete": {
+        "name": "Fütterung komplett",
+        "state": {
+          "on": "Alle Mahlzeiten gegeben",
+          "off": "Fütterung unvollständig"
+        }
+      },
+      "daily_tasks_complete": {
+        "name": "Tagesaufgaben komplett",
+        "state": {
+          "on": "Alle Aufgaben erledigt",
+          "off": "Aufgaben ausstehend"
+        }
+      },
+      "visitor_mode": {
+        "name": "Besuchsmodus",
+        "state": {
+          "on": "Besuchsmodus aktiv",
+          "off": "Normaler Modus"
+        }
+      },
+      "outside_status": {
+        "name": "War draußen Status",
+        "state": {
+          "on": "War heute draußen",
+          "off": "War noch nicht draußen"
+        }
+      },
+      "needs_attention": {
+        "name": "Braucht Aufmerksamkeit",
+        "state": {
+          "on": "Aufmerksamkeit erforderlich",
+          "off": "Alles in Ordnung"
+        }
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus",
+        "state": {
+          "on": "Gesundheitsproblem",
+          "off": "Gesund"
+        }
+      },
+      "emergency_status": {
+        "name": "Notfallstatus",
+        "state": {
+          "on": "Notfall aktiv",
+          "off": "Kein Notfall"
+        }
+      },
+      "overdue_feeding": {
+        "name": "Überfällige Fütterung",
+        "state": {
+          "on": "Fütterung überfällig",
+          "off": "Fütterung pünktlich"
+        }
+      },
+      "inactivity_warning": {
+        "name": "Inaktivitätswarnung",
+        "state": {
+          "on": "Zu wenig Aktivität",
+          "off": "Ausreichend aktiv"
+        }
+      },
+      "medication_due": {
+        "name": "Medikament fällig",
+        "state": {
+          "on": "Medikament fällig",
+          "off": "Medikament nicht fällig"
+        }
+      },
+      "vet_appointment_reminder": {
+        "name": "Tierarzttermin Erinnerung",
+        "state": {
+          "on": "Tierarzttermin anstehend",
+          "off": "Kein anstehender Termin"
+        }
+      },
+      "weather_alert": {
+        "name": "Wetter-Warnung",
+        "state": {
+          "on": "Wetterwarnung aktiv",
+          "off": "Wetter okay"
+        }
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "feeding_status": {
+        "name": "Fütterungsstatus"
+      },
+      "activity": {
+        "name": "Aktivität"
+      },
+      "daily_summary": {
+        "name": "Tageszusammenfassung"
+      },
+      "last_activity": {
+        "name": "Letzte Aktivität"
+      },
+      "health_score": {
+        "name": "Gesundheits-Score"
+      },
+      "mood": {
+        "name": "Stimmung"
+      },
+      "weekly_summary": {
+        "name": "Wochenzusammenfassung"
+      }
+    },
+    "button": {
+      "daily_reset_button": {
+        "name": "Täglicher Reset"
+      },
+      "feeding_reminder_button": {
+        "name": "Fütterungserinnerung"
+      },
+      "test_notification_button": {
+        "name": "Test Benachrichtigung"
+      },
+      "emergency_button": {
+        "name": "Notfall"
+      },
+      "quick_outside_button": {
+        "name": "Schnell Draußen"
+      },
+      "quick_feeding_button": {
+        "name": "Schnell Füttern"
+      },
+      "morning_feeding_button": {
+        "name": "Frühstück"
+      },
+      "lunch_feeding_button": {
+        "name": "Mittagessen"
+      },
+      "evening_feeding_button": {
+        "name": "Abendessen"
+      },
+      "snack_button": {
+        "name": "Leckerli"
+      }
+    }
+  }
+}
