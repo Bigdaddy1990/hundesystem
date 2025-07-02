@@ -1,10 +1,14 @@
 {
   "name": "Hundesystem",
-  "domain": "hundesystem",
-  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
-  "codeowners": ["@Bigdaddy1990"],
-  "requirements": [],
-  "config_flow": true,
-  "iot_class": "local_polling",
-  "render_readme": true
+  "content_in_root": false,
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "hundesystem.zip",
+  "domains": ["binary_sensor", "sensor", "input_boolean", "counter", "input_datetime", "input_text", "button"],
+  "country": "DE",
+  "iot_class": "Local Push",
+  "homeassistant": "2023.5.0",
+  "version": "1.0.1",
+  "hide_default_branch": false,
+  "category": "integration"
 }
