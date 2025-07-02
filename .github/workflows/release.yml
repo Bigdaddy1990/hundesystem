@@ -22,9 +22,5 @@ jobs:
           cd ..
           rm -rf hacs_release
 
-      - name: Upload ZIP to GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: hundesystem.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Print tag ref
+        run: echo "Tag: ${{ github.ref }}"
