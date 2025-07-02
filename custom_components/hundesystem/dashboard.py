@@ -13,7 +13,12 @@ async def async_create_dashboard(hass: HomeAssistant, dog_name: str, config: Dic
     """Create a comprehensive dashboard for the dog system."""
     
     try:
-        # Create main dashboard
+    from functools import partial
+    def _write_dashboard_file(path, content):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    await hass.async_add_executor_job(partial(_write_dashboard_file, dashboard_file, content))
         main_dashboard = await _generate_main_dashboard(dog_name, config)
         await _save_dashboard(hass, f"hundesystem_{dog_name}", main_dashboard)
         
@@ -845,8 +850,6 @@ async def _save_dashboard(hass: HomeAssistant, filename: str, content: str) -> N
     try:
     from functools import partial
     def _write_dashboard_file(path, content):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
 
     await hass.async_add_executor_job(partial(_write_dashboard_file, dashboard_file, content))
         
