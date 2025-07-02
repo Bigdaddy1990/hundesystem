@@ -1,5 +1,0 @@
-# Installation – Hundesystem
-
-## Über HACS
-
-...
