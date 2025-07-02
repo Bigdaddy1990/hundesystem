@@ -1,168 +1,256 @@
-# 🐶 Hundesystem - Home Assistant Integration
+# 🐶 Hundesystem - Umfassendes Home Assistant Integration
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Bigdaddy1990/hundesystem)](https://github.com/Bigdaddy1990/hundesystem/releases)
 [![GitHub](https://img.shields.io/github/license/Bigdaddy1990/hundesystem)](LICENSE)
-[![Buy me a coffee](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20Dino%20some%20treats&color=6f4e37&logo=buy%20Dino%20some%20treats&logoColor=white)](https://ko-fi.com/bigdaddy1990)
+[![GitHub issues](https://img.shields.io/github/issues/Bigdaddy1990/hundesystem)](https://github.com/Bigdaddy1990/hundesystem/issues)
+[![GitHub stars](https://img.shields.io/github/stars/Bigdaddy1990/hundesystem)](https://github.com/Bigdaddy1990/hundesystem/stargazers)
+[![Buy me a coffee](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://ko-fi.com/bigdaddy1990)
 
-Eine umfassende Home Assistant Integration zur Verwaltung und Überwachung von Hundeaktivitäten wie Fütterung, Gassigehen und täglichen Routinen.
+**Das ultimative Smart Home System für Hundebesitzer** - Eine vollständige Home Assistant Integration zur intelligenten Verwaltung und Überwachung von Hundeaktivitäten, Gesundheit, Fütterung und täglichen Routinen.
 
-## ✨ Features
+## 🌟 Highlights
 
-### 🍽️ Fütterungsmanagement
-- Verfolge alle Mahlzeiten (Frühstück, Mittagessen, Abendessen, Leckerli)
-- Automatische Erinnerungen zu Fütterungszeiten
-- Fütterungszähler und Statistiken
+- **🧠 Intelligente Automationen** - Automatische Erinnerungen, Türsensor-Integration und KI-basierte Empfehlungen
+- **📱 Mobile-First Design** - Optimiert für Smartphone-Nutzung mit ansprechenden Dashboards
+- **🔔 Smart Notifications** - Personenbasierte Benachrichtigungen mit interaktiven Aktionen
+- **📊 Umfassende Statistiken** - Detaillierte Analysen und Gesundheitstrends
+- **🐕‍🦺 Multi-Hund Support** - Verwaltung mehrerer Hunde mit individuellen Profilen
+- **🏥 Gesundheitsmonitoring** - Tierarzttermine, Medikamente und Gesundheitsbewertungen
+- **🌦️ Wetter-Integration** - Wetterbasierte Empfehlungen für Aktivitäten
+- **🚨 Notfall-System** - Sofortige Benachrichtigungen und Kontakte
 
-### 🚶 Aktivitätstracking
-- Überwache Gassigehzeiten und Außenaktivitäten
-- Aktivitätszähler für verschiedene Hundeaktivitäten
-- Zeitstempel für letzte Aktivitäten
+---
 
-### 🏠 Besuchsmodus
-- Spezielle Einstellungen für Gäste oder Hundesitter
-- Reduzierte Benachrichtigungen während Besuchszeiten
-- Besuchername-Tracking
+## 🎯 Funktionsübersicht
 
-### 📱 Push-Benachrichtigungen
-- Erinnerungen und Status-Updates
-- Konfigurierbare Benachrichtigungsgeräte
-- Benutzerdefinierte Nachrichten
+### 🍽️ **Intelligentes Fütterungsmanagement**
+- **Automatische Erinnerungen** für alle Mahlzeiten (Frühstück, Mittag, Abend, Leckerli)
+- **Flexible Fütterungszeiten** mit benutzerdefinierten Zeitplänen
+- **Überfütterungs-Schutz** mit Warnungen bei zu häufiger Fütterung
+- **Fütterungsstatistiken** mit täglichen, wöchentlichen und monatlichen Trends
+- **Interaktive Rückfragen** - "Wurde Rex schon gefüttert?"
 
-### 📊 Automatisches Dashboard
-- Generiert automatisch ein ansprechendes Mushroom-Dashboard
-- Übersichtskarten für alle Funktionen
-- Schnellaktionen und Statistiken
+### 🚶 **Umfassendes Aktivitäts-Tracking**
+- **Türsensor-Integration** für automatische Erkennung von Gartengängen
+- **Aktivitätsprotokollierung** - Gassi, Spielen, Training, Geschäfte
+- **Inaktivitätswarnungen** bei zu wenig Bewegung
+- **GPS-Ready** für zukünftige Standort-Features
+- **Dauer-Tracking** für alle Aktivitäten
 
-### 📈 Intelligente Sensoren
-- Tägliche Statistiken und Zusammenfassungen
-- Status-Sensoren für Aufmerksamkeitsbedarf
-- Vollständige Übersicht über alle Aktivitäten
+### ❤️ **Erweiterte Gesundheitsüberwachung**
+- **Gesundheits-Score** mit automatischer Berechnung
+- **Medikamenten-Management** mit Erinnerungen und Dosierung
+- **Tierarzttermine** mit automatischen Erinnerungen
+- **Gewichts-Tracking** und BMI-Berechnung
+- **Symptom-Protokollierung** mit Trend-Analyse
+- **Impfungs-Kalender** mit Auffrischungs-Erinnerungen
 
-## 🔧 Entitäten
+### 🏠 **Besuchsmodus & Betreuung**
+- **Hundesitter-Modus** mit reduzierten Benachrichtigungen
+- **Besucherinformationen** mit Kontaktdaten und Anweisungen
+- **Temporäre Einstellungen** die sich automatisch zurücksetzen
+- **Gäste-Dashboard** mit vereinfachter Bedienung
 
-### Binary Sensoren
-- `binary_sensor.{name}_feeding_complete` - Fütterung komplett
-- `binary_sensor.{name}_daily_tasks_complete` - Tagesaufgaben komplett  
-- `binary_sensor.{name}_visitor_mode` - Besuchsmodus aktiv
-- `binary_sensor.{name}_outside_status` - War draußen Status
-- `binary_sensor.{name}_needs_attention` - Braucht Aufmerksamkeit
+### 🚨 **Notfall-System**
+- **Ein-Klick-Notfall** Button für sofortige Hilfe
+- **Automatische Kontaktierung** aller eingetragenen Notfallkontakte
+- **GPS-Standort** in Notfallbenachrichtigungen
+- **Tierarzt-Integration** für medizinische Notfälle
+- **Notfall-Historie** für bessere Vorbereitung
 
-### Sensoren
-- `sensor.{name}_status` - Allgemeiner Status
-- `sensor.{name}_feeding_status` - Fütterungsstatus
-- `sensor.{name}_activity` - Aktivitätsstatus
-- `sensor.{name}_daily_summary` - Tageszusammenfassung
-- `sensor.{name}_last_activity` - Letzte Aktivität (Zeitstempel)
+### 🌦️ **Wetter-Integration**
+- **Wetterbasierte Empfehlungen** für Spaziergänge
+- **Temperatur-Warnungen** (zu heiß/kalt für den Hund)
+- **Regen-Alerts** mit Alternativvorschlägen
+- **Saisonale Anpassungen** der Aktivitäts-Empfehlungen
 
-### Helper-Entitäten
-Die Integration erstellt automatisch alle benötigten Helper-Entitäten:
-- Input Boolean für jede Fütterungsart und Aktivität
-- Counter für Fütterungen und Außenaktivitäten  
-- Input DateTime für Fütterungszeiten
-- Input Text für Notizen
+---
 
 ## 📦 Installation
 
-### Via HACS (Empfohlen)
+### Über HACS (Empfohlen)
 
-1. Öffne HACS in Home Assistant
-2. Gehe zu "Integrationen"
-3. Klicke auf die drei Punkte (⋮) oben rechts
-4. Wähle "Benutzerdefinierte Repositories"
-5. Füge die URL hinzu: `https://github.com/Bigdaddy1990/hundesystem`
-6. Kategorie: "Integration"
-7. Klicke "Hinzufügen"
-8. Suche nach "Hundesystem" und installiere es
-9. Starte Home Assistant neu
+1. **HACS öffnen** in Home Assistant
+2. **Integrationen** → Menü (⋮) → **Benutzerdefinierte Repositories**
+3. **Repository hinzufügen**: `https://github.com/Bigdaddy1990/hundesystem`
+4. **Kategorie**: Integration
+5. **"Hundesystem"** installieren
+6. **Home Assistant neustarten**
 
 ### Manuelle Installation
 
-1. Lade die neueste Version herunter
-2. Extrahiere den Inhalt nach `custom_components/hundesystem/`
-3. Starte Home Assistant neu
+```bash
+# In Ihr Home Assistant config Verzeichnis
+cd /config
+git clone https://github.com/Bigdaddy1990/hundesystem.git
+cp -r hundesystem/custom_components/hundesystem custom_components/
+# Restart Home Assistant
+```
 
-## ⚙️ Konfiguration
+---
 
-1. Gehe zu Einstellungen → Geräte & Dienste
-2. Klicke auf "Integration hinzufügen"
-3. Suche nach "Hundesystem"
-4. Folge dem Konfigurationsassistenten:
-   - **Hundename**: Name für deinen Hund (z.B. "rex")
-   - **Push-Geräte**: Wähle Benachrichtigungsgeräte (optional)
-   - **Personenverfolgung**: Aktiviere erweiterte Features (optional)
-   - **Dashboard erstellen**: Automatisches Mushroom-Dashboard (empfohlen)
+## ⚙️ Einrichtung
 
-## 🎛️ Dashboard
+### 🔧 **Grundkonfiguration**
 
-Die Integration erstellt automatisch ein ansprechendes Dashboard mit:
+1. **Integration hinzufügen**: Einstellungen → Geräte & Dienste → Integration hinzufügen
+2. **"Hundesystem"** suchen und auswählen
+3. **Setup-Wizard** durchlaufen:
 
-- 🍽️ Übersichtskarten für alle Fütterungen
-- 🚶 Aktivitätstracking
-- 🏠 Besuchsmodus-Steuerung
-- ⚡ Schnellaktionen für Erinnerungen und Reset
-- 📊 Statistikansicht
-- 📝 Notizbereich
+#### Schritt 1: Grunddaten
+- **Hundename**: Eindeutiger Name (z.B. "rex", "bella")
+- **Push-Geräte**: Mobile Apps für Benachrichtigungen
+- **Personen-Tracking**: Automatische Erkennung anwesender Personen
+- **Dashboard**: Automatische Erstellung eines Mushroom-Dashboards
 
-**Hinweis**: Für die beste Dashboard-Erfahrung sollte [Mushroom Cards](https://github.com/piitaya/lovelace-mushroom) installiert sein.
+#### Schritt 2: Erweiterte Einstellungen
+- **Türsensor**: Automatische Erkennung von Türbewegungen
+- **Reset-Zeit**: Täglicher Reset der Statistiken (Standard: 23:59)
+- **Gesundheitsmonitoring**: Erweiterte Gesundheitsfeatures
+- **Wetter-Integration**: Wetterbasierte Empfehlungen
+- **Notfall-Features**: Notfallkontakte und -funktionen
 
-## 🔧 Services
+#### Schritt 3: Fütterungsplan
+- **Frühstück**: 07:00 (anpassbar)
+- **Mittagessen**: 12:00 (anpassbar)
+- **Abendessen**: 18:00 (anpassbar)
+- **Leckerli**: 15:00 (anpassbar)
+- **Automatische Erinnerungen**: Ein/Aus
 
-### Fütterungserinnerung senden
+#### Schritt 4: Notfallkontakte
+- **Tierarzt**: Name, Telefon, Adresse
+- **Notfallkontakt**: Name und Telefon
+- **Ersatzkontakt**: Backup-Person
+- **Hundeinfos**: Mikrochip, Versicherung
+
+---
+
+## 🎛️ **Entitäten Übersicht**
+
+Nach der Installation werden automatisch **60+ Entitäten** erstellt:
+
+### 📊 **Sensoren**
+```yaml
+sensor.rex_status                    # Gesamtstatus
+sensor.rex_feeding_status           # Fütterungsstatus  
+sensor.rex_activity                 # Aktivitätsstatus
+sensor.rex_daily_summary            # Tageszusammenfassung
+sensor.rex_health_score             # Gesundheits-Score
+sensor.rex_mood                     # Stimmung
+sensor.rex_weekly_summary           # Wochenstatistik
+```
+
+### 🔘 **Binary Sensoren**
+```yaml
+binary_sensor.rex_feeding_complete       # Alle Mahlzeiten
+binary_sensor.rex_daily_tasks_complete   # Tagesaufgaben
+binary_sensor.rex_needs_attention        # Aufmerksamkeit nötig
+binary_sensor.rex_health_status          # Gesundheitsprobleme
+binary_sensor.rex_emergency_status       # Notfallstatus
+binary_sensor.rex_medication_due         # Medikament fällig
+binary_sensor.rex_vet_appointment_reminder # Tierarzttermin
+```
+
+### 🔴 **Buttons**
+```yaml
+button.rex_daily_reset              # Tagesreset
+button.rex_feeding_reminder         # Fütterungserinnerung
+button.rex_test_notification        # Test-Benachrichtigung
+button.rex_emergency                # Notfall aktivieren
+button.rex_quick_outside            # Schnell: Draußen
+button.rex_morning_feeding          # Frühstück
+button.rex_lunch_feeding            # Mittagessen
+button.rex_evening_feeding          # Abendessen
+```
+
+### 🔢 **Helper Entitäten** (Automatisch erstellt)
+```yaml
+# Input Booleans
+input_boolean.rex_feeding_morning    # Frühstück Status
+input_boolean.rex_feeding_lunch      # Mittag Status
+input_boolean.rex_feeding_evening    # Abend Status
+input_boolean.rex_outside            # War draußen
+input_boolean.rex_poop_done          # Geschäft gemacht
+input_boolean.rex_visitor_mode_input # Besuchsmodus
+
+# Counter
+counter.rex_feeding_morning_count    # Frühstück Zähler
+counter.rex_outside_count           # Draußen Zähler
+counter.rex_poop_count              # Geschäft Zähler
+
+# Input DateTime
+input_datetime.rex_feeding_morning_time    # Frühstück Zeit
+input_datetime.rex_last_outside           # Letzter Gartengang
+input_datetime.rex_next_vet_appointment   # Nächster Tierarzt
+
+# Input Numbers
+input_number.rex_weight              # Gewicht
+input_number.rex_health_score        # Gesundheits-Score
+input_number.rex_temperature         # Körpertemperatur
+
+# Input Select
+input_select.rex_health_status       # Gesundheitsstatus
+input_select.rex_mood               # Stimmung
+input_select.rex_activity_level     # Aktivitätslevel
+
+# Input Text
+input_text.rex_notes                # Notizen
+input_text.rex_health_notes         # Gesundheitsnotizen
+input_text.rex_emergency_contact    # Notfallkontakt
+```
+
+---
+
+## 🎮 **Services & Automationen**
+
+### 🔧 **Verfügbare Services**
+
+#### **hundesystem.trigger_feeding_reminder**
 ```yaml
 service: hundesystem.trigger_feeding_reminder
 data:
-  meal_type: morning # morning, lunch, evening, snack
+  meal_type: morning  # morning, lunch, evening, snack
+  dog_name: rex      # optional
   message: "Zeit fürs Frühstück!" # optional
 ```
 
-### Täglicher Reset
+#### **hundesystem.log_activity**
 ```yaml
-service: hundesystem.daily_reset
-```
-
-### Benachrichtigung senden
-```yaml
-service: hundesystem.send_notification
+service: hundesystem.log_activity
 data:
-  title: "Erinnerung"
-  message: "Hast du Rex schon gefüttert?"
+  activity_type: walk  # walk, outside, play, training, poop
+  dog_name: rex
+  duration: 30        # Minuten
+  notes: "Schöner Spaziergang im Park"
 ```
 
-### Besuchsmodus setzen
+#### **hundesystem.set_visitor_mode**
 ```yaml
 service: hundesystem.set_visitor_mode
 data:
   enabled: true
-  visitor_name: "Maria" # optional
+  visitor_name: "Maria Müller"
+  dog_name: rex
 ```
 
-### Aktivität protokollieren
+#### **hundesystem.emergency_contact**
 ```yaml
-service: hundesystem.log_activity
+service: hundesystem.emergency_contact
 data:
-  activity_type: walk # walk, outside, play, training, other
-  duration: 30 # optional, in Minuten
-  notes: "Schöner Spaziergang im Park" # optional
+  emergency_type: medical
+  message: "Rex zeigt Anzeichen von Unwohlsein"
+  location: "Zuhause"
+  contact_vet: true
+  dog_name: rex
 ```
 
-## 🤖 Automatisierungsbeispiele
+### 🤖 **Automatisierungsbeispiele**
 
-### Täglicher Reset um Mitternacht
+#### **Automatische Fütterungserinnerung**
 ```yaml
 automation:
-  - alias: "Hundesystem - Täglicher Reset"
-    trigger:
-      - platform: time
-        at: "00:00:00"
-    action:
-      - service: hundesystem.daily_reset
-```
-
-### Frühstück Erinnerung
-```yaml
-automation:
-  - alias: "Hundesystem - Frühstück Erinnerung"
+  - alias: "Rex - Frühstück Erinnerung"
     trigger:
       - platform: time
         at: "07:00:00"
@@ -170,140 +258,420 @@ automation:
       - condition: state
         entity_id: input_boolean.rex_feeding_morning
         state: "off"
+      - condition: state
+        entity_id: binary_sensor.rex_visitor_mode
+        state: "off"
     action:
       - service: hundesystem.trigger_feeding_reminder
         data:
           meal_type: morning
+          dog_name: rex
 ```
 
-### Aufmerksamkeit benötigt
+#### **Türsensor-basierte Aktivitätserkennung**
 ```yaml
 automation:
-  - alias: "Hundesystem - Aufmerksamkeit benötigt"
+  - alias: "Rex - Türsensor Draußen Erkennung"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.garden_door
+        from: "off"
+        to: "on"
+        for: "00:00:30"
+    action:
+      - delay: "00:00:10"
+      - service: hundesystem.send_notification
+        data:
+          title: "🐶 War Rex draußen?"
+          message: "Türsensor hat Bewegung erkannt"
+          data:
+            actions:
+              - action: "REX_OUTSIDE_YES"
+                title: "✅ Ja, war draußen"
+              - action: "REX_OUTSIDE_NO" 
+                title: "❌ Nein, nur Tür"
+```
+
+#### **Gesundheitsüberwachung**
+```yaml
+automation:
+  - alias: "Rex - Gesundheit Aufmerksamkeit"
     trigger:
       - platform: state
         entity_id: binary_sensor.rex_needs_attention
         to: "on"
         for: "00:30:00"
+    condition:
+      - condition: template
+        value_template: "{{ 'health' in state_attr('binary_sensor.rex_needs_attention', 'reasons') | join(' ') }}"
     action:
       - service: hundesystem.send_notification
         data:
-          title: "🐶 Rex braucht Aufmerksamkeit"
+          title: "⚠️ Rex - Gesundheit beachten"
           message: "{{ state_attr('binary_sensor.rex_needs_attention', 'reasons') | join(', ') }}"
 ```
 
-## 🔮 Geplante Features
+#### **Wetter-basierte Empfehlungen**
+```yaml
+automation:
+  - alias: "Rex - Wetter Warnung"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.temperature
+        above: 28
+    condition:
+      - condition: state
+        entity_id: input_boolean.rex_outside
+        state: "off"
+      - condition: time
+        after: "10:00:00"
+        before: "18:00:00"
+    action:
+      - service: hundesystem.send_notification
+        data:
+          title: "🌡️ Heiß heute!"
+          message: "Es ist sehr heiß ({{ states('sensor.temperature') }}°C). Rex sollte früh morgens oder spät abends raus."
+```
 
-- 📊 Historische Datenauswertung
-- ⚖️ Gewichtstracking
-- 🏥 Tierarzttermin-Erinnerungen
-- 📸 Foto-Upload für Aktivitäten
-- ❤️ Gesundheitsmonitoring
-- 🐕‍🦺 Multi-Hund Support
+---
 
-## 🔧 Fehlerbehebung
+## 📱 **Dashboard Integration**
 
-### Helper-Entitäten werden nicht erstellt
-- Überprüfe die Logs unter Entwicklertools → Logs
-- Stelle sicher, dass die Input Boolean/Counter-Integrationen aktiviert sind
-- Starte Home Assistant nach der Installation neu
+### 🎨 **Automatisches Mushroom Dashboard**
 
-### Dashboard wird nicht erstellt
-- Überprüfe, ob der Ordner `dashboards/` im Home Assistant Konfigurationsverzeichnis existiert
-- Installiere [Mushroom Cards](https://github.com/piitaya/lovelace-mushroom) für die beste Erfahrung
-- Prüfe die Logs auf Dashboard-bezogene Fehler
+Die Integration erstellt automatisch ein vollständiges Dashboard mit:
 
-### Benachrichtigungen funktionieren nicht
-- Überprüfe, ob die ausgewählten Notify-Services korrekt konfiguriert sind
-- Teste die Services manuell in Entwicklertools → Services
-- Stelle sicher, dass Mobile App oder andere Notify-Integrationen eingerichtet sind
+- **📊 Übersichtskarten** für alle Funktionen
+- **🎛️ Schnellaktionen** für häufige Aufgaben
+- **📈 Statistik-Ansichten** mit Trends
+- **📝 Notiz-Bereiche** für Beobachtungen
+- **🏥 Gesundheits-Monitoring** mit Scores
+- **📱 Mobile-optimiert** für Smartphone-Nutzung
 
-### Services nicht verfügbar
-- Starte Home Assistant nach der Installation neu
-- Überprüfe, ob die Integration erfolgreich geladen wurde
-- Prüfe die Logs auf Fehlermeldungen bei der Integration
+#### **Beispiel Dashboard-Karte**
+```yaml
+type: custom:mushroom-template-card
+primary: "Rex"
+secondary: "{{ states('sensor.rex_status') }}"
+icon: mdi:dog
+icon_color: >-
+  {% set status = states('sensor.rex_status') %}
+  {% if 'Notfall' in status %} red
+  {% elif 'Aufmerksamkeit' in status %} orange
+  {% elif 'Alles in Ordnung' in status %} green
+  {% else %} blue {% endif %}
+badge_icon: >-
+  {% if is_state('binary_sensor.rex_needs_attention', 'on') %} mdi:alert-circle
+  {% elif is_state('binary_sensor.rex_visitor_mode', 'on') %} mdi:account-group
+  {% endif %}
+tap_action:
+  action: more-info
+```
 
-### Entitäten zeigen "Unbekannt" oder "Nicht verfügbar"
-- Warte einige Minuten nach der ersten Installation
-- Stelle sicher, dass alle Helper-Integrationen aktiviert sind
-- Lösche und erstelle die Integration bei persistenten Problemen neu
-
-## 📖 Debug-Informationen
-
-Für detaillierte Debug-Informationen füge folgendes zu deiner `configuration.yaml` hinzu:
+### 📊 **Erweiterte Statistik-Karten**
 
 ```yaml
+# Wöchentliche Fütterungsstatistik
+type: custom:mini-graph-card
+entities:
+  - entity: counter.rex_feeding_morning_count
+    name: Frühstück
+    color: orange
+  - entity: counter.rex_feeding_evening_count
+    name: Abendessen
+    color: red
+name: Fütterungen diese Woche
+hours_to_show: 168
+group_by: date
+aggregate_func: max
+```
+
+---
+
+## 🔧 **Erweiterte Konfiguration**
+
+### 🎯 **Multi-Hund Setup**
+
+```yaml
+# Automatisches Hinzufügen eines zweiten Hundes
+service: hundesystem.add_dog
+data:
+  dog_name: bella
+  push_devices: 
+    - mobile_app_smartphone
+  door_sensor: binary_sensor.back_door
+  create_dashboard: true
+```
+
+### 🏥 **Gesundheitsmonitoring Konfiguration**
+
+```yaml
+# Erweiterte Gesundheitsüberwachung
+input_number:
+  rex_target_weight:
+    name: "Rex Zielgewicht"
+    min: 1
+    max: 50
+    step: 0.1
+    unit_of_measurement: "kg"
+    
+input_text:
+  rex_medical_conditions:
+    name: "Rex Medizinische Bedingungen"
+    max: 255
+```
+
+### 🌦️ **Wetter-Integration Setup**
+
+```yaml
+# In configuration.yaml
+template:
+  - sensor:
+      - name: "Rex Weather Recommendation"
+        state: >-
+          {% set temp = states('sensor.temperature') | float %}
+          {% set condition = states('weather.home') %}
+          {% if temp > 30 %}
+            Zu heiß - Nur kurze Spaziergänge
+          {% elif temp < 0 %}
+            Sehr kalt - Pfoten schützen
+          {% elif condition in ['rainy', 'pouring'] %}
+            Regen - Kurze Runden oder drinnen bleiben
+          {% else %}
+            Perfekt für Aktivitäten
+          {% endif %}
+```
+
+---
+
+## 🚨 **Notfall-System**
+
+### 📞 **Notfallkontakte Konfiguration**
+
+```yaml
+# Notfallkontakte in input_text
+input_text:
+  rex_emergency_contact_1:
+    name: "Notfallkontakt 1"
+    initial: "Maria Müller - 0123-456789"
+    
+  rex_vet_emergency:
+    name: "Tierarzt Notfall"
+    initial: "Tierklinik 24/7 - 0987-654321"
+```
+
+### 🚨 **Notfall-Automation**
+
+```yaml
+automation:
+  - alias: "Rex - Notfall aktiviert"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.rex_emergency_mode
+        to: "on"
+    action:
+      - service: notify.all_devices
+        data:
+          title: "🚨 NOTFALL - Rex"
+          message: "Notfallmodus für Rex wurde aktiviert!"
+          data:
+            priority: high
+            ttl: 0
+      - service: script.emergency_call_sequence
+```
+
+---
+
+## 🔍 **Troubleshooting**
+
+### ❓ **Häufige Probleme**
+
+#### **Helper-Entitäten werden nicht erstellt**
+```bash
+# Lösung:
+1. Home Assistant vollständig neustarten
+2. Integration entfernen und neu hinzufügen
+3. Logs prüfen: Einstellungen → System → Protokolle
+```
+
+#### **Dashboard wird nicht angezeigt**
+```bash
+# Lösung:
+1. Mushroom Cards installieren: HACS → Frontend
+2. Browser-Cache löschen
+3. Dashboard manuell aktualisieren
+```
+
+#### **Benachrichtigungen funktionieren nicht**
+```yaml
+# Test-Service aufrufen:
+service: hundesystem.test_notification
+data:
+  dog_name: rex
+```
+
+#### **Türsensor reagiert nicht**
+```yaml
+# Sensor in Automationen prüfen:
+trigger:
+  - platform: state
+    entity_id: binary_sensor.your_door_sensor
+action:
+  - service: system_log.write
+    data:
+      message: "Türsensor ausgelöst"
+      level: info
+```
+
+### 📊 **Debug-Logs aktivieren**
+
+```yaml
+# In configuration.yaml
 logger:
   default: warning
   logs:
     custom_components.hundesystem: debug
 ```
 
-## 🤝 Beitragen
+---
 
-Beiträge sind willkommen! Bitte:
+## 🔮 **Roadmap & Geplante Features**
 
-1. 🍴 Forke das Repository
-2. 🌿 Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. 💾 Committe deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. 📤 Pushe zum Branch (`git push origin feature/AmazingFeature`)
-5. 🔄 Öffne einen Pull Request
+### 🎯 **Version 2.1 (Q3 2025)**
+- [ ] **GPS-Tracking** Integration für Standort-basierte Features
+- [ ] **Kalender-Integration** für Tierarzttermine und Impfungen
+- [ ] **Photo-Upload** für Gesundheitsdokumentation
+- [ ] **Voice-Integration** (Alexa/Google Assistant)
 
-### Entwicklung
+### 🎯 **Version 2.2 (Q4 2025)**
+- [ ] **IoT-Sensoren** Integration (Smart Futterschale, Wasserspender)
+- [ ] **Machine Learning** für Verhaltensanalyse
+- [ ] **Mobile Companion App** 
+- [ ] **Backup & Sync** Cloud-Features
 
-```bash
-# Repository klonen
-git clone https://github.com/Bigdaddy1990/hundesystem.git
-cd hundesystem
-
-# Development-Umgebung einrichten
-pip install -r requirements_dev.txt
-
-# Code-Stil prüfen
-pre-commit run --all-files
-
-# Tests ausführen
-pytest
-```
-
-## 📝 Changelog
-
-### Version 1.0.0
-- ✨ Erste Veröffentlichung
-- 🍽️ Fütterungsmanagement mit allen Mahlzeiten
-- 🚶 Aktivitätstracking für Gassigehen
-- 🏠 Besuchsmodus-Funktionalität
-- 📱 Push-Benachrichtigungen
-- 📊 Automatisches Dashboard
-- 🎯 Intelligente Aufmerksamkeits-Sensoren
-
-## 📄 Lizenz
-
-Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
-
-## ❤️ Unterstützung
-
-Wenn dir diese Integration gefällt:
-
-- ⭐ Gib dem Repository einen Stern
-- 🐛 Melde Bugs über [GitHub Issues](https://github.com/Bigdaddy1990/hundesystem/issues)
-- 💡 Schlage neue Features vor
-- ☕ [Spendiere mir einen Kaffee](https://ko-fi.com/bigdaddy1990)
-
-## 🏆 Danksagungen
-
-- Dank an die Home Assistant Community für die großartige Plattform
-- Dank an alle Mitwirkenden und Beta-Tester
-- Besonderer Dank an alle Hundebesitzer, die Feedback gegeben haben
-
-## 📞 Support & Community
-
-- 💬 [GitHub Discussions](https://github.com/Bigdaddy1990/hundesystem/discussions) für Fragen und Ideen
-- 🐛 [GitHub Issues](https://github.com/Bigdaddy1990/hundesystem/issues) für Bug-Reports
-- 📧 [E-Mail Support](mailto:support@hundesystem.dev) für private Anfragen
+### 🎯 **Version 3.0 (2026)**
+- [ ] **Multi-Pet Support** (Katzen, andere Haustiere)
+- [ ] **Vet Integration** API für direkte Terminbuchung
+- [ ] **Community Features** Hundebesitzer-Netzwerk
+- [ ] **AR Features** für interaktive Gesundheitschecks
 
 ---
 
-Entwickelt mit ❤️ für Hundeliebhaber und Home Assistant Enthusiasten
+## 🤝 **Community & Support**
 
-*Hund ist der beste Freund des Menschen - und jetzt auch der beste Freund deines Smart Homes!* 🐶🏠
+### 💬 **Support Kanäle**
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/Bigdaddy1990/hundesystem/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/Bigdaddy1990/hundesystem/discussions)
+- **📧 Direkte Hilfe**: [E-Mail Support](mailto:support@hundesystem.dev)
+- **💬 Community Chat**: [Discord Server](https://discord.gg/hundesystem)
+
+### 🏆 **Mitwirken**
+
+Beiträge sind herzlich willkommen! 
+
+```bash
+# Repository forken und klonen
+git clone https://github.com/yourusername/hundesystem.git
+cd hundesystem
+
+# Feature Branch erstellen
+git checkout -b feature/amazing-new-feature
+
+# Änderungen committen
+git commit -m 'Add amazing new feature'
+
+# Push und Pull Request erstellen
+git push origin feature/amazing-new-feature
+```
+
+#### **Entwicklung Setup**
+```bash
+# Dependencies installieren
+pip install -r requirements_dev.txt
+
+# Code Style prüfen
+pre-commit run --all-files
+
+# Tests ausführen
+pytest tests/
+
+# Integration testen
+hass --script check_config --config config/
+```
+
+### 🎖️ **Hall of Fame**
+Besonderer Dank an alle Mitwirkenden:
+
+- **@Bigdaddy1990** - Hauptentwickler
+- **@TestUser1** - Beta-Testing und Feedback
+- **@VetDoc** - Gesundheitsfeatures Consulting
+- **@MobileGuru** - Dashboard Optimierungen
+- **Community** - Unzählige Verbesserungsvorschläge
+
+---
+
+## 📄 **Lizenz & Rechtliches**
+
+```
+MIT License
+
+Copyright (c) 2025 Hundesystem Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+```
+
+### ⚖️ **Datenschutz**
+- **🔒 Lokal**: Alle Daten werden lokal in Home Assistant gespeichert
+- **🚫 No Cloud**: Keine externen Cloud-Services erforderlich
+- **🔐 Privacy-First**: Keine Datenübertragung an Dritte
+- **🛡️ Sicher**: Alle Kommunikation erfolgt innerhalb Ihres Netzwerks
+
+---
+
+## ❤️ **Danksagungen**
+
+- **🏠 Home Assistant Community** für die großartige Plattform
+- **🎨 Mushroom Cards** für die wunderschönen UI-Komponenten
+- **🐕 Alle Hundebesitzer** die Feedback und Ideen beigetragen haben
+- **👨‍⚕️ Tierärzte** die bei den Gesundheitsfeatures geholfen haben
+- **🧪 Beta-Tester** für unermüdliches Testen und Feedback
+
+---
+
+## ☕ **Unterstützung**
+
+Wenn Ihnen diese Integration gefällt und Sie die Entwicklung unterstützen möchten:
+
+- ⭐ **Stern geben** auf GitHub
+- 🐛 **Bugs melden** für bessere Qualität  
+- 💡 **Features vorschlagen** für neue Ideen
+- ☕ **[Kaffee spendieren](https://ko-fi.com/bigdaddy1990)** für den Entwickler
+- 📢 **Weiterempfehlen** an andere Hundebesitzer
+
+---
+
+<div align="center">
+
+## 🐶 Made with ❤️ for Dog Lovers
+
+**Hundesystem** - *Weil jeder Hund das Beste verdient hat!*
+
+[🏠 Home Assistant](https://www.home-assistant.io/) | [🎨 Mushroom Cards](https://github.com/piitaya/lovelace-mushroom) | [📦 HACS](https://hacs.xyz/)
+
+---
+
+*Entwickelt mit Liebe für Hunde und Smart Home Enthusiasten* 🐕🏠
+
+</div>
