@@ -3,9 +3,38 @@ repos:
     rev: 23.7.0
     hooks:
       - id: black
+        language_version: python3.11
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-yaml
+      - id: check-added-large-files
+      - id: requirements-txt-fixer
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: Sort imports
+        language_version: python3.11
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+
+  - repo: https://github.com/pre-commit/mirrors-flake8
+    rev: v6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-docstrings]
+
+  - repo: https://github.com/pre-commit/prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        files: \.(json|md|yml|yaml)$
