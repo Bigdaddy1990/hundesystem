@@ -1,0 +1,30 @@
+name: Release ZIP for HACS
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  create-zip:
+    name: Build and upload ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare ZIP structure
+        run: |
+          mkdir -p hacs_release/custom_components
+          cp -r custom_components/hundesystem hacs_release/custom_components/
+          cd hacs_release
+          zip -r ../hundesystem.zip custom_components
+          cd ..
+          rm -rf hacs_release
+
+      - name: Upload ZIP to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: hundesystem.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
