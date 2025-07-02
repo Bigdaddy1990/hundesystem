@@ -3,22 +3,6 @@
   "content_in_root": false,
   "filename": "hundesystem.zip",
   "render_readme": true,
-  "domains": [
-    "binary_sensor",
-    "sensor", 
-    "button",
-    "input_boolean",
-    "counter",
-    "input_datetime",
-    "input_text",
-    "input_number",
-    "input_select",
-    "notify",
-    "person"
-  ],
-  "iot_class": "Local Polling",
-  "homeassistant": "2023.1.0",
   "zip_release": true,
-  "hide_default_branch": false,
-  "category": "integration"
+  "hide_default_branch": false
 }
