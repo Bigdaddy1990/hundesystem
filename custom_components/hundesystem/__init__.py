@@ -1,204 +1,371 @@
-"""Hundesystem Integration für Home Assistant."""
-import asyncio
+"""The Hundesystem integration."""
+from __future__ import annotations
+
 import logging
+from datetime import datetime, timedelta
+from typing import Any
+
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.typing import ConfigType
-import homeassistant.helpers.config_validation as cv
 from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
+from homeassistant.helpers.storage import Store
+from homeassistant.exceptions import ServiceValidationError
 
 from .const import (
     DOMAIN,
-    CONF_NAME,
+    CONF_DOG_NAME,
     CONF_PUSH_DEVICES,
     CONF_PERSON_TRACKING,
-    CONF_DASHBOARD,
+    CONF_CREATE_DASHBOARD,
     SERVICE_TRIGGER_FEEDING_REMINDER,
     SERVICE_DAILY_RESET,
     SERVICE_SEND_NOTIFICATION,
+    SERVICE_SET_VISITOR_MODE,
+    SERVICE_LOG_ACTIVITY,
+    MEAL_TYPES,
+    ACTIVITY_TYPES,
 )
-from .helpers import async_create_helpers
-from .dashboard import async_create_dashboard
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR,
+]
 
-# Service Schemas
-SERVICE_TRIGGER_FEEDING_REMINDER_SCHEMA = vol.Schema({
-    vol.Optional("meal_type", default="morning"): cv.string,
+# Service schemas
+TRIGGER_FEEDING_REMINDER_SCHEMA = vol.Schema({
+    vol.Required("meal_type"): vol.In(MEAL_TYPES.keys()),
     vol.Optional("message"): cv.string,
 })
 
-SERVICE_SEND_NOTIFICATION_SCHEMA = vol.Schema({
+SEND_NOTIFICATION_SCHEMA = vol.Schema({
     vol.Required("title"): cv.string,
     vol.Required("message"): cv.string,
+    vol.Optional("target"): cv.string,
 })
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up Hundesystem from configuration.yaml."""
-    return True
+SET_VISITOR_MODE_SCHEMA = vol.Schema({
+    vol.Required("enabled"): cv.boolean,
+    vol.Optional("visitor_name"): cv.string,
+})
+
+LOG_ACTIVITY_SCHEMA = vol.Schema({
+    vol.Required("activity_type"): vol.In(ACTIVITY_TYPES.keys()),
+    vol.Optional("duration"): vol.Range(min=1, max=480),
+    vol.Optional("notes"): cv.string,
+})
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Hundesystem from config entry."""
+    """Set up Hundesystem from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     
-    name = entry.data.get(CONF_NAME, "hund")
-    push_devices = entry.data.get(CONF_PUSH_DEVICES, [])
-    
-    # Store configuration
+    # Store config data
     hass.data[DOMAIN][entry.entry_id] = {
         "config": entry.data,
-        "name": name,
-        "push_devices": push_devices,
-        "person_tracking": entry.data.get(CONF_PERSON_TRACKING, True),
-        "dashboard": entry.data.get(CONF_DASHBOARD, True),
+        "store": Store(hass, 1, f"{DOMAIN}_{entry.data[CONF_DOG_NAME]}")
     }
     
-    # Create helper entities
-    try:
-        await async_create_helpers(hass, name)
-        _LOGGER.info("Helper entities created for %s", name)
-    except Exception as e:
-        _LOGGER.error("Failed to create helpers: %s", e)
-    
-    # Create dashboard if requested
-    if entry.data.get(CONF_DASHBOARD, True):
-        try:
-            await async_create_dashboard(hass, name)
-        except Exception as e:
-            _LOGGER.warning("Failed to create dashboard: %s", e)
-    
-    # Setup platforms
+    # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
-    # Register services
-    await async_setup_services(hass, entry)
+    # Create helper entities
+    await _setup_helper_entities(hass, entry)
     
-    _LOGGER.info("Hundesystem successfully set up for: %s", name)
+    # Register services
+    await _register_services(hass, entry)
+    
+    # Create dashboard if requested
+    if entry.data.get(CONF_CREATE_DASHBOARD, True):
+        await _create_dashboard(hass, entry)
+    
     return True
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload Hundesystem config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
-        
-        # Remove services if no other instances
-        if not hass.data[DOMAIN]:
-            services = [
-                SERVICE_TRIGGER_FEEDING_REMINDER,
-                SERVICE_DAILY_RESET,
-                SERVICE_SEND_NOTIFICATION,
-            ]
-            for service in services:
-                if hass.services.has_service(DOMAIN, service):
-                    hass.services.async_remove(DOMAIN, service)
+    """Unload a config entry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        hass.data[DOMAIN].pop(entry.entry_id)
     
     return unload_ok
 
-async def async_setup_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Setup services for the integration."""
-    name = entry.data.get(CONF_NAME, "hund")
-    push_devices = entry.data.get(CONF_PUSH_DEVICES, [])
+
+async def _setup_helper_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Set up helper entities (input_boolean, counter, etc.)."""
+    dog_name = entry.data[CONF_DOG_NAME]
     
-    async def trigger_feeding_reminder(call: ServiceCall):
-        """Service to trigger feeding reminder."""
-        meal_type = call.data.get("meal_type", "morning")
-        custom_message = call.data.get("message")
-        
-        if custom_message:
-            message = custom_message
-        else:
-            meal_names = {
-                "morning": "Frühstück",
-                "lunch": "Mittagessen", 
-                "evening": "Abendessen",
-                "snack": "Leckerli"
-            }
-            meal_name = meal_names.get(meal_type, meal_type)
-            message = f"🐶 Wurde {name.title()} schon gefüttert? ({meal_name})"
-        
-        await send_push_notification(hass, push_devices, "🐶 Fütterungserinnerung", message)
+    # Input boolean entities
+    input_booleans = [
+        f"feeding_morning",
+        f"feeding_lunch", 
+        f"feeding_evening",
+        f"feeding_snack",
+        f"outside",
+        f"visitor_mode_input"
+    ]
     
-    async def daily_reset(call: ServiceCall):
-        """Service for daily reset."""
-        entities_to_reset = []
-        
-        # Input Boolean entities
-        boolean_types = ["feeding_morning", "feeding_lunch", "feeding_evening", 
-                        "feeding_snack", "outside", "visitor_mode"]
-        for entity_type in boolean_types:
-            entities_to_reset.append(f"input_boolean.{name}_{entity_type}")
-        
-        # Counter entities  
-        counter_types = ["feeding_morning", "feeding_lunch", "feeding_evening",
-                        "feeding_snack", "outside"]
-        for entity_type in counter_types:
-            entities_to_reset.append(f"counter.{name}_{entity_type}")
-        
-        # Reset counters
-        counter_entities = [e for e in entities_to_reset if e.startswith("counter.")]
-        if counter_entities:
-            try:
+    # Counter entities  
+    counters = [
+        f"feeding_count",
+        f"outside_count",
+        f"activity_count"
+    ]
+    
+    # Input datetime entities
+    input_datetimes = [
+        f"last_feeding_morning",
+        f"last_feeding_lunch",
+        f"last_feeding_evening",
+        f"last_feeding_snack", 
+        f"last_outside"
+    ]
+    
+    # Input text entities
+    input_texts = [
+        f"notes",
+        f"visitor_name",
+        f"last_activity_notes"
+    ]
+    
+    try:
+        # Create input_boolean entities
+        for entity in input_booleans:
+            entity_id = f"input_boolean.{dog_name}_{entity}"
+            if not hass.states.get(entity_id):
                 await hass.services.async_call(
-                    "counter", "reset", {"entity_id": counter_entities}, blocking=True
+                    "input_boolean", "create",
+                    {"name": f"{dog_name.title()} {entity.replace('_', ' ').title()}"},
+                    blocking=True
                 )
-            except Exception as e:
-                _LOGGER.error("Failed to reset counters: %s", e)
         
-        # Reset input booleans
-        boolean_entities = [e for e in entities_to_reset if e.startswith("input_boolean.")]
-        if boolean_entities:
-            try:
+        # Create counter entities
+        for entity in counters:
+            entity_id = f"counter.{dog_name}_{entity}"
+            if not hass.states.get(entity_id):
                 await hass.services.async_call(
-                    "input_boolean", "turn_off", {"entity_id": boolean_entities}, blocking=True
+                    "counter", "create", 
+                    {"name": f"{dog_name.title()} {entity.replace('_', ' ').title()}"},
+                    blocking=True
                 )
-            except Exception as e:
-                _LOGGER.error("Failed to reset input booleans: %s", e)
         
-        _LOGGER.info("Daily reset completed for %s", name)
-        await send_push_notification(
-            hass, push_devices, 
-            "🐶 Hundesystem", 
-            f"Tagesstatistiken für {name.title()} wurden zurückgesetzt"
-        )
+        # Create input_datetime entities
+        for entity in input_datetimes:
+            entity_id = f"input_datetime.{dog_name}_{entity}"
+            if not hass.states.get(entity_id):
+                await hass.services.async_call(
+                    "input_datetime", "create",
+                    {
+                        "name": f"{dog_name.title()} {entity.replace('_', ' ').title()}",
+                        "has_date": True,
+                        "has_time": True
+                    },
+                    blocking=True
+                )
+        
+        # Create input_text entities
+        for entity in input_texts:
+            entity_id = f"input_text.{dog_name}_{entity}"
+            if not hass.states.get(entity_id):
+                await hass.services.async_call(
+                    "input_text", "create",
+                    {
+                        "name": f"{dog_name.title()} {entity.replace('_', ' ').title()}",
+                        "max": 255 if "notes" in entity else 100
+                    },
+                    blocking=True
+                )
+                
+    except Exception as err:
+        _LOGGER.error("Error creating helper entities: %s", err)
+
+
+async def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register services for the integration."""
+    dog_name = entry.data[CONF_DOG_NAME]
     
-    async def send_notification_service(call: ServiceCall):
-        """Service to send notifications."""
-        title = call.data.get("title", "Hundesystem")
-        message = call.data.get("message", "Benachrichtigung")
+    async def trigger_feeding_reminder(call: ServiceCall) -> None:
+        """Handle feeding reminder service call."""
+        meal_type = call.data["meal_type"]
+        message = call.data.get("message", f"Zeit für {MEAL_TYPES[meal_type]}!")
         
-        await send_push_notification(hass, push_devices, title, message)
+        # Send notification
+        await _send_notification(hass, entry, "🐶 Fütterungszeit", message)
+        
+        _LOGGER.info("Feeding reminder sent for %s: %s", dog_name, meal_type)
+    
+    async def daily_reset(call: ServiceCall) -> None:
+        """Handle daily reset service call."""
+        try:
+            # Reset all feeding input_booleans
+            for meal in ["morning", "lunch", "evening", "snack"]:
+                entity_id = f"input_boolean.{dog_name}_feeding_{meal}"
+                if hass.states.get(entity_id):
+                    await hass.services.async_call(
+                        "input_boolean", "turn_off",
+                        {"entity_id": entity_id},
+                        blocking=True
+                    )
+            
+            # Reset outside status
+            outside_entity = f"input_boolean.{dog_name}_outside"
+            if hass.states.get(outside_entity):
+                await hass.services.async_call(
+                    "input_boolean", "turn_off",
+                    {"entity_id": outside_entity},
+                    blocking=True
+                )
+            
+            # Reset counters
+            for counter in ["feeding_count", "outside_count", "activity_count"]:
+                entity_id = f"counter.{dog_name}_{counter}"
+                if hass.states.get(entity_id):
+                    await hass.services.async_call(
+                        "counter", "reset",
+                        {"entity_id": entity_id},
+                        blocking=True
+                    )
+            
+            _LOGGER.info("Daily reset completed for %s", dog_name)
+            
+        except Exception as err:
+            _LOGGER.error("Error during daily reset: %s", err)
+            raise ServiceValidationError(f"Daily reset failed: {err}")
+    
+    async def send_notification(call: ServiceCall) -> None:
+        """Handle send notification service call."""
+        title = call.data["title"]
+        message = call.data["message"]
+        target = call.data.get("target")
+        
+        await _send_notification(hass, entry, title, message, target)
+    
+    async def set_visitor_mode(call: ServiceCall) -> None:
+        """Handle set visitor mode service call."""
+        enabled = call.data["enabled"]
+        visitor_name = call.data.get("visitor_name", "")
+        
+        # Set visitor mode input_boolean
+        visitor_entity = f"input_boolean.{dog_name}_visitor_mode_input"
+        if hass.states.get(visitor_entity):
+            action = "turn_on" if enabled else "turn_off"
+            await hass.services.async_call(
+                "input_boolean", action,
+                {"entity_id": visitor_entity},
+                blocking=True
+            )
+        
+        # Set visitor name
+        if visitor_name:
+            name_entity = f"input_text.{dog_name}_visitor_name"
+            if hass.states.get(name_entity):
+                await hass.services.async_call(
+                    "input_text", "set_value",
+                    {"entity_id": name_entity, "value": visitor_name},
+                    blocking=True
+                )
+        
+        _LOGGER.info("Visitor mode %s for %s", "enabled" if enabled else "disabled", dog_name)
+    
+    async def log_activity(call: ServiceCall) -> None:
+        """Handle log activity service call."""
+        activity_type = call.data["activity_type"]
+        duration = call.data.get("duration", 0)
+        notes = call.data.get("notes", "")
+        
+        # Increment activity counter
+        counter_entity = f"counter.{dog_name}_activity_count"
+        if hass.states.get(counter_entity):
+            await hass.services.async_call(
+                "counter", "increment",
+                {"entity_id": counter_entity},
+                blocking=True
+            )
+        
+        # Update notes if provided
+        if notes:
+            notes_entity = f"input_text.{dog_name}_last_activity_notes"
+            if hass.states.get(notes_entity):
+                activity_note = f"{ACTIVITY_TYPES[activity_type]}"
+                if duration:
+                    activity_note += f" ({duration} min)"
+                activity_note += f": {notes}"
+                
+                await hass.services.async_call(
+                    "input_text", "set_value",
+                    {"entity_id": notes_entity, "value": activity_note},
+                    blocking=True
+                )
+        
+        _LOGGER.info("Activity logged for %s: %s", dog_name, activity_type)
     
     # Register services
     hass.services.async_register(
         DOMAIN, SERVICE_TRIGGER_FEEDING_REMINDER, 
-        trigger_feeding_reminder, SERVICE_TRIGGER_FEEDING_REMINDER_SCHEMA
+        trigger_feeding_reminder, TRIGGER_FEEDING_REMINDER_SCHEMA
     )
-    hass.services.async_register(DOMAIN, SERVICE_DAILY_RESET, daily_reset)
+    
     hass.services.async_register(
-        DOMAIN, SERVICE_SEND_NOTIFICATION, 
-        send_notification_service, SERVICE_SEND_NOTIFICATION_SCHEMA
+        DOMAIN, SERVICE_DAILY_RESET,
+        daily_reset
+    )
+    
+    hass.services.async_register(
+        DOMAIN, SERVICE_SEND_NOTIFICATION,
+        send_notification, SEND_NOTIFICATION_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_VISITOR_MODE,
+        set_visitor_mode, SET_VISITOR_MODE_SCHEMA
+    )
+    
+    hass.services.async_register(
+        DOMAIN, SERVICE_LOG_ACTIVITY,
+        log_activity, LOG_ACTIVITY_SCHEMA
     )
 
-async def send_push_notification(hass: HomeAssistant, push_devices: list, title: str, message: str):
-    """Send push notification to configured devices."""
-    if not push_devices:
-        _LOGGER.warning("No push devices configured")
+
+async def _send_notification(
+    hass: HomeAssistant, 
+    entry: ConfigEntry, 
+    title: str, 
+    message: str, 
+    target: str | None = None
+) -> None:
+    """Send notification via configured services."""
+    push_devices = entry.data.get(CONF_PUSH_DEVICES, [])
+    
+    if not push_devices and not target:
+        _LOGGER.warning("No push devices configured for notifications")
         return
     
-    for device in push_devices:
-        try:
-            service_name = device.replace("notify.", "") if device.startswith("notify.") else device
+    try:
+        devices = [target] if target else push_devices
+        
+        for device in devices:
             await hass.services.async_call(
-                "notify", service_name,
+                "notify", device,
                 {"title": title, "message": message},
                 blocking=False
             )
-            _LOGGER.debug("Notification sent to %s", device)
-        except Exception as e:
-            _LOGGER.error("Failed to send notification to %s: %s", device, e)
+        
+        _LOGGER.debug("Notification sent: %s - %s", title, message)
+        
+    except Exception as err:
+        _LOGGER.error("Error sending notification: %s", err)
+
+
+async def _create_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Create Lovelace dashboard for the dog."""
+    dog_name = entry.data[CONF_DOG_NAME]
+    
+    # Dashboard creation logic would go here
+    # This is a placeholder - you would need to implement the actual
+    # dashboard creation using the Lovelace API
+    
+    _LOGGER.info("Dashboard creation requested for %s", dog_name)
