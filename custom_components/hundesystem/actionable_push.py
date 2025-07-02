@@ -1,10 +1,7 @@
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import entity_registry as er
-from homeassistant.components.notify import async_get_notifier
 import logging
 
 _LOGGER = logging.getLogger(__name__)
-
 DOMAIN = "hundesystem"
 
 async def handle_send_notification(call: ServiceCall):
@@ -17,23 +14,22 @@ async def handle_send_notification(call: ServiceCall):
 
     notify_targets = set()
 
-    # Dynamische Empfängerwahl
+    # Dynamische Empfängerwahl basierend auf Anwesenheit
     for person_id in person_ids:
-        entity_id = f"person.{person_id}"
-        state = hass.states.get(entity_id)
-        if state and state.state == "home":
-            device = hass.states.get(f"input_text.notify_device_{person_id}")
-            if device:
-                notify_targets.add(device.state)
+        person_entity = f"person.{person_id}"
+        person_state = hass.states.get(person_entity)
+        if person_state and person_state.state == "home":
+            device_entity = f"input_text.notify_device_{person_id}"
+            device_state = hass.states.get(device_entity)
+            if device_state:
+                notify_targets.add(device_state.state)
 
-    # Manuelle Targets hinzufügen
     notify_targets.update(target_devices)
 
     if not notify_targets:
         _LOGGER.warning("Keine gültigen Notify-Ziele gefunden")
         return
 
-    # Actionable Notification-Daten
     actions = call.data.get("actions", [
         {"action": "yes", "title": "Ja"},
         {"action": "no", "title": "Nein"}
