@@ -1,0 +1,516 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hundesystem einrichten",
+        "description": "Konfigurieren Sie Ihr umfassendes Hundesystem für die Verwaltung von Fütterung, Aktivitäten, Gesundheit und täglichen Routinen. Dieses System bietet intelligente Benachrichtigungen, automatische Erinnerungen und detaillierte Statistiken.",
+        "data": {
+          "dog_name": "Name des Hundes",
+          "push_devices": "Benachrichtigungsgeräte",
+          "person_tracking": "Personenverfolgung aktivieren",
+          "create_dashboard": "Dashboard automatisch erstellen"
+        },
+        "data_description": {
+          "dog_name": "Ein eindeutiger Name für Ihren Hund (nur Buchstaben, Zahlen und Unterstriche)",
+          "push_devices": "Wählen Sie mobile Apps oder andere Benachrichtigungsdienste für Erinnerungen aus",
+          "person_tracking": "Erweiterte Features für automatische Erkennung anwesender Personen",
+          "create_dashboard": "Erstellt automatisch ein ansprechendes Mushroom-Dashboard mit allen Funktionen"
+        }
+      },
+      "advanced": {
+        "title": "Erweiterte Konfiguration",
+        "description": "Konfigurieren Sie erweiterte Funktionen wie Türsensor-Integration, Gesundheitsüberwachung und Notfall-Features für ein umfassendes Hundemanagementsystem.",
+        "data": {
+          "door_sensor": "Türsensor für automatische Erkennung",
+          "reset_time": "Tägliche Reset-Zeit",
+          "enable_health_monitoring": "Gesundheitsüberwachung aktivieren",
+          "enable_weather_integration": "Wetter-Integration aktivieren",
+          "enable_visitor_mode": "Besuchsmodus aktivieren",
+          "enable_emergency_features": "Notfall-Funktionen aktivieren"
+        },
+        "data_description": {
+          "door_sensor": "Binärsensor zur automatischen Erkennung wenn der Hund durch die Tür geht",
+          "reset_time": "Uhrzeit für den automatischen täglichen Reset aller Statistiken und Zähler",
+          "enable_health_monitoring": "Aktiviert erweiterte Gesundheitsüberwachung mit Trends und Analysen",
+          "enable_weather_integration": "Wetterbasierte Empfehlungen und Warnungen für Spaziergänge",
+          "enable_visitor_mode": "Spezieller Modus für Hundesitter, Besucher oder Urlaubsbetreuung",
+          "enable_emergency_features": "Notfall-Benachrichtigungen, Kontakte und Schnellzugriff"
+        }
+      },
+      "feeding_schedule": {
+        "title": "Fütterungsplan einrichten",
+        "description": "Legen Sie die optimalen Fütterungszeiten für {dog_name} fest. Das System kann automatische Erinnerungen senden und Fütterungsstatistiken verfolgen.",
+        "data": {
+          "morning_time": "Frühstück Zeit",
+          "lunch_time": "Mittagessen Zeit",
+          "evening_time": "Abendessen Zeit",
+          "snack_time": "Leckerli Zeit",
+          "enable_feeding_reminders": "Automatische Fütterungserinnerungen",
+          "auto_increment_counters": "Zähler automatisch erhöhen",
+          "strict_feeding_schedule": "Strikten Fütterungsplan befolgen"
+        },
+        "data_description": {
+          "morning_time": "Bevorzugte Uhrzeit für das Frühstück (z.B. 07:00)",
+          "lunch_time": "Bevorzugte Uhrzeit für das Mittagessen (z.B. 12:00)",
+          "evening_time": "Bevorzugte Uhrzeit für das Abendessen (z.B. 18:00)",
+          "snack_time": "Bevorzugte Uhrzeit für Leckerlis (z.B. 15:00)",
+          "enable_feeding_reminders": "Sendet automatische Push-Benachrichtigungen zu den Fütterungszeiten",
+          "auto_increment_counters": "Erhöht Fütterungszähler automatisch beim Markieren als gefüttert",
+          "strict_feeding_schedule": "Zeigt Warnungen bei verspäteten oder verpassten Fütterungen"
+        }
+      },
+      "contacts": {
+        "title": "Kontakte und Hundeinformationen",
+        "description": "Hinterlegen Sie wichtige Kontaktinformationen und Details zu {dog_name} für Notfälle und die Gesundheitsüberwachung.",
+        "data": {
+          "emergency_contact_name": "Notfallkontakt Name",
+          "emergency_contact_phone": "Notfallkontakt Telefon",
+          "vet_name": "Tierarzt Name",
+          "vet_phone": "Tierarzt Telefon",
+          "vet_address": "Tierarzt Adresse",
+          "backup_contact_name": "Ersatzkontakt Name",
+          "backup_contact_phone": "Ersatzkontakt Telefon",
+          "microchip_id": "Mikrochip ID",
+          "insurance_company": "Versicherungsgesellschaft",
+          "insurance_number": "Versicherungspolice-Nummer"
+        },
+        "data_description": {
+          "emergency_contact_name": "Name der Person, die im Notfall kontaktiert werden soll",
+          "emergency_contact_phone": "Telefonnummer für Notfälle (Mobilnummer bevorzugt)",
+          "vet_name": "Name des behandelnden Tierarztes oder der Tierklinik",
+          "vet_phone": "Telefonnummer der Tierarztpraxis",
+          "vet_address": "Vollständige Adresse der Tierarztpraxis",
+          "backup_contact_name": "Name eines Ersatzkontakts (z.B. Nachbar, Familienmitglied)",
+          "backup_contact_phone": "Telefonnummer des Ersatzkontakts",
+          "microchip_id": "15-stellige Mikrochip-Identifikationsnummer",
+          "insurance_company": "Name der Hundehaftpflicht- oder Krankenversicherung",
+          "insurance_number": "Versicherungspolice- oder Kundennummer"
+        }
+      }
+    },
+    "error": {
+      "invalid_dog_name": "Ungültiger Hundename. Verwenden Sie nur Buchstaben, Zahlen und Unterstriche. Der Name muss mit einem Buchstaben beginnen.",
+      "already_configured": "Ein Hundesystem mit diesem Namen ist bereits konfiguriert. Wählen Sie einen anderen Namen.",
+      "too_many_dogs": "Maximale Anzahl von 10 Hunden erreicht. Entfernen Sie zuerst einen bestehenden Hund.",
+      "cannot_connect": "Verbindung zu einem oder mehreren Benachrichtigungsdiensten fehlgeschlagen. Überprüfen Sie Ihre Konfiguration.",
+      "invalid_sensor": "Der ausgewählte Sensor ist ungültig oder nicht verfügbar. Wählen Sie einen verfügbaren Binärsensor.",
+      "invalid_feeding_times": "Ungültige Fütterungszeiten angegeben. Verwenden Sie das Format HH:MM.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten. Überprüfen Sie die Logs für weitere Details."
+    },
+    "abort": {
+      "already_configured": "Ein Hundesystem mit diesem Namen ist bereits konfiguriert. Sie können die Einstellungen über die Optionen ändern."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hundesystem Optionen - {dog_name}",
+        "description": "Ändern Sie die Einstellungen für das Hundesystem von {dog_name}. Alle Änderungen werden sofort wirksam.",
+        "data": {
+          "push_devices": "Benachrichtigungsgeräte",
+          "person_tracking": "Personen-Tracking aktivieren",
+          "create_dashboard": "Dashboard automatisch aktualisieren",
+          "door_sensor": "Türsensor für automatische Erkennung",
+          "reset_time": "Tägliche Reset-Zeit"
+        },
+        "data_description": {
+          "push_devices": "Mobile Apps und andere Benachrichtigungsdienste für Erinnerungen",
+          "person_tracking": "Automatische Erkennung anwesender Personen für gezielte Benachrichtigungen",
+          "create_dashboard": "Dashboard automatisch mit neuen Funktionen aktualisieren",
+          "door_sensor": "Binärsensor zur Erkennung von Türbewegungen für automatisches Aktivitäts-Tracking",
+          "reset_time": "Uhrzeit für den täglichen automatischen Reset aller Statistiken"
+        }
+      }
+    }
+  },
+  "services": {
+    "trigger_feeding_reminder": {
+      "name": "Fütterungserinnerung senden",
+      "description": "Sendet eine intelligente Fütterungserinnerung basierend auf der Tageszeit und dem Fütterungsplan",
+      "fields": {
+        "meal_type": {
+          "name": "Mahlzeit",
+          "description": "Spezifische Mahlzeit (morning=Frühstück, lunch=Mittag, evening=Abend, snack=Leckerli)"
+        },
+        "message": {
+          "name": "Benutzerdefinierte Nachricht",
+          "description": "Optionale benutzerdefinierte Erinnerungsnachricht anstelle der automatischen"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (leer für alle konfigurierten Hunde)"
+        }
+      }
+    },
+    "daily_reset": {
+      "name": "Täglicher Reset",
+      "description": "Setzt alle Tagesstatistiken, Zähler und Status-Markierungen zurück für einen Neustart",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (leer für alle konfigurierten Hunde)"
+        }
+      }
+    },
+    "send_notification": {
+      "name": "Benachrichtigung senden", 
+      "description": "Sendet eine benutzerdefinierte Push-Benachrichtigung mit erweiterten Optionen",
+      "fields": {
+        "title": {
+          "name": "Titel",
+          "description": "Titel der Benachrichtigung (wird fett angezeigt)"
+        },
+        "message": {
+          "name": "Nachricht",
+          "description": "Haupttext der Benachrichtigung"
+        },
+        "target": {
+          "name": "Spezifisches Ziel",
+          "description": "Spezifischer Benachrichtigungsdienst (überschreibt Standard-Konfiguration)"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des betreffenden Hundes (für Kontext in der Nachricht)"
+        },
+        "data": {
+          "name": "Erweiterte Daten",
+          "description": "JSON-Objekt mit zusätzlichen Daten (z.B. Aktions-Buttons, Bilder)"
+        }
+      }
+    },
+    "set_visitor_mode": {
+      "name": "Besuchsmodus verwalten",
+      "description": "Aktiviert oder deaktiviert den Besuchsmodus für reduzierte Benachrichtigungen",
+      "fields": {
+        "enabled": {
+          "name": "Aktiviert",
+          "description": "True zum Aktivieren, False zum Deaktivieren des Besuchsmodus"
+        },
+        "visitor_name": {
+          "name": "Name des Besuchers",
+          "description": "Name des Hundesitters, Besuchers oder der betreuenden Person"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (leer für alle konfigurierten Hunde)"
+        }
+      }
+    },
+    "log_activity": {
+      "name": "Aktivität protokollieren",
+      "description": "Protokolliert eine Hundeaktivität mit automatischer Zeiterfassung und Statistik-Update",
+      "fields": {
+        "activity_type": {
+          "name": "Art der Aktivität",
+          "description": "Typ der Aktivität (walk, outside, play, training, poop, vet, grooming, other)"
+        },
+        "duration": {
+          "name": "Dauer in Minuten",
+          "description": "Dauer der Aktivität in Minuten (optional, für Statistiken)"
+        },
+        "notes": {
+          "name": "Notizen",
+          "description": "Zusätzliche Beobachtungen oder Details zur Aktivität"
+        },
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes (leer für alle konfigurierten Hunde)"
+        }
+      }
+    },
+    "add_dog": {
+      "name": "Neuen Hund hinzufügen",
+      "description": "Fügt dynamisch einen neuen Hund mit allen erforderlichen Entitäten zum System hinzu",
+      "fields": {
+        "dog_name": {
+          "name": "Name des neuen Hundes",
+          "description": "Eindeutiger Name für den neuen Hund (Buchstaben, Zahlen, Unterstriche)"
+        },
+        "push_devices": {
+          "name": "Benachrichtigungsgeräte",
+          "description": "Liste der Benachrichtigungsdienste für den neuen Hund"
+        },
+        "door_sensor": {
+          "name": "Türsensor",
+          "description": "Optionaler Türsensor für automatische Aktivitätserkennung"
+        },
+        "create_dashboard": {
+          "name": "Dashboard erstellen",
+          "description": "Automatisch ein vollständiges Dashboard für den neuen Hund erstellen"
+        }
+      }
+    },
+    "test_notification": {
+      "name": "Test-Benachrichtigung",
+      "description": "Sendet eine Test-Benachrichtigung zur Überprüfung der Konfiguration und Erreichbarkeit",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des spezifischen Hundes für den Test (leer für alle konfigurierten Hunde)"
+        }
+      }
+    },
+    "emergency_contact": {
+      "name": "Notfallkontakt aktivieren",
+      "description": "Sendet eine prioritäre Notfallbenachrichtigung an alle konfigurierten Kontakte",
+      "fields": {
+        "emergency_type": {
+          "name": "Art des Notfalls",
+          "description": "Kategorie des Notfalls (medical, lost, injury, behavioral, other)"
+        },
+        "message": {
+          "name": "Notfallbeschreibung",
+          "description": "Detaillierte Beschreibung der Notfallsituation"
+        },
+        "location": {
+          "name": "Aktueller Standort",
+          "description": "Wo befindet sich der Hund aktuell (Adresse oder Beschreibung)"
+        },
+        "contact_vet": {
+          "name": "Tierarzt benachrichtigen",
+          "description": "Zusätzlich automatisch den konfigurierten Tierarzt kontaktieren"
+        },
+        "dog_name": {
+          "name": "Betroffener Hund",
+          "description": "Name des Hundes, der den Notfall betrifft"
+        }
+      }
+    },
+    "health_check": {
+      "name": "Gesundheitscheck durchführen",
+      "description": "Führt eine systematische Bewertung des aktuellen Gesundheits- und Wohlbefindenszustands durch",
+      "fields": {
+        "check_type": {
+          "name": "Art der Untersuchung",
+          "description": "Fokus des Gesundheitschecks (general, feeding, activity, behavior, symptoms)"
+        },
+        "notes": {
+          "name": "Beobachtungen",
+          "description": "Spezifische Beobachtungen, Symptome oder Verhaltensauffälligkeiten"
+        },
+        "temperature": {
+          "name": "Körpertemperatur",
+          "description": "Gemessene Körpertemperatur in Celsius (Normal: 37.5-39.0°C)"
+        },
+        "weight": {
+          "name": "Aktuelles Gewicht",
+          "description": "Gewicht in Kilogramm für Gewichtstrend-Tracking"
+        },
+        "dog_name": {
+          "name": "Zu untersuchender Hund",
+          "description": "Name des Hundes für den Gesundheitscheck"
+        }
+      }
+    },
+    "schedule_reminder": {
+      "name": "Erinnerung planen",
+      "description": "Plant eine zukünftige Erinnerung für Termine, Medikamente oder andere wichtige Ereignisse",
+      "fields": {
+        "reminder_type": {
+          "name": "Art der Erinnerung",
+          "description": "Kategorie der Erinnerung (feeding, walk, medication, vet_appointment, grooming, training, custom)"
+        },
+        "scheduled_time": {
+          "name": "Geplante Zeit",
+          "description": "Datum und Uhrzeit für die Erinnerung (YYYY-MM-DD HH:MM:SS)"
+        },
+        "message": {
+          "name": "Erinnerungstext",
+          "description": "Nachricht die zur geplanten Zeit gesendet werden soll"
+        },
+        "repeat": {
+          "name": "Wiederholen",
+          "description": "Erinnerung regelmäßig wiederholen (für wiederkehrende Termine)"
+        },
+        "repeat_interval": {
+          "name": "Wiederholungsintervall",
+          "description": "Häufigkeit der Wiederholung (daily, weekly, monthly)"
+        },
+        "dog_name": {
+          "name": "Betreffender Hund",
+          "description": "Name des Hundes für den die Erinnerung geplant wird"
+        }
+      }
+    },
+    "update_dog_info": {
+      "name": "Hundeinformationen aktualisieren",
+      "description": "Aktualisiert Stammdaten und wichtige Informationen über den Hund",
+      "fields": {
+        "dog_name": {
+          "name": "Hundename",
+          "description": "Name des zu aktualisierenden Hundes"
+        },
+        "breed": {
+          "name": "Hunderasse",
+          "description": "Rasse oder Rassemischung des Hundes"
+        },
+        "age_years": {
+          "name": "Alter in Jahren",
+          "description": "Aktuelles Alter in Jahren (mit Dezimalstellen möglich)"
+        },
+        "weight": {
+          "name": "Gewicht",
+          "description": "Aktuelles Gewicht in Kilogramm"
+        },
+        "microchip_id": {
+          "name": "Mikrochip-Nummer",
+          "description": "15-stellige Mikrochip-Identifikationsnummer"
+        },
+        "vet_contact": {
+          "name": "Tierarzt Kontaktdaten",
+          "description": "Name und Telefonnummer des behandelnden Tierarztes"
+        },
+        "emergency_contact": {
+          "name": "Notfallkontakt",
+          "description": "Name und Telefonnummer für Notfallsituationen"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "feeding_complete": {
+        "name": "Fütterung komplett",
+        "state": {
+          "on": "Alle Hauptmahlzeiten gegeben",
+          "off": "Fütterung noch unvollständig"
+        }
+      },
+      "daily_tasks_complete": {
+        "name": "Tagesaufgaben komplett",
+        "state": {
+          "on": "Alle wichtigen Aufgaben erledigt",
+          "off": "Noch offene Aufgaben"
+        }
+      },
+      "visitor_mode": {
+        "name": "Besuchsmodus",
+        "state": {
+          "on": "Besuchsmodus aktiv",
+          "off": "Normaler Betriebsmodus"
+        }
+      },
+      "outside_status": {
+        "name": "Draußen-Status",
+        "state": {
+          "on": "War heute bereits draußen",
+          "off": "War heute noch nicht draußen"
+        }
+      },
+      "needs_attention": {
+        "name": "Braucht Aufmerksamkeit",
+        "state": {
+          "on": "Aufmerksamkeit oder Aktion erforderlich",
+          "off": "Alles in Ordnung"
+        }
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus",
+        "state": {
+          "on": "Gesundheitsproblem erkannt",
+          "off": "Gesundheitlich unauffällig"
+        }
+      },
+      "emergency_status": {
+        "name": "Notfallstatus",
+        "state": {
+          "on": "Notfallsituation aktiv",
+          "off": "Keine Notfallsituation"
+        }
+      },
+      "overdue_feeding": {
+        "name": "Verspätete Fütterung",
+        "state": {
+          "on": "Fütterung überfällig",
+          "off": "Fütterungszeiten eingehalten"
+        }
+      },
+      "inactivity_warning": {
+        "name": "Inaktivitätswarnung",
+        "state": {
+          "on": "Zu wenig Bewegung/Aktivität",
+          "off": "Ausreichend aktiv"
+        }
+      },
+      "medication_due": {
+        "name": "Medikament fällig",
+        "state": {
+          "on": "Medikamentengabe erforderlich",
+          "off": "Medikation aktuell"
+        }
+      },
+      "vet_appointment_reminder": {
+        "name": "Tierarzttermin-Erinnerung",
+        "state": {
+          "on": "Tierarzttermin steht bevor",
+          "off": "Kein anstehender Tierarzttermin"
+        }
+      },
+      "weather_alert": {
+        "name": "Wetter-Warnung",
+        "state": {
+          "on": "Wetterbedingte Warnung aktiv",
+          "off": "Wetter für Aktivitäten geeignet"
+        }
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Gesamtstatus"
+      },
+      "feeding_status": {
+        "name": "Fütterungsstatus"
+      },
+      "activity": {
+        "name": "Aktivitätsstatus"
+      },
+      "daily_summary": {
+        "name": "Tägliche Zusammenfassung"
+      },
+      "last_activity": {
+        "name": "Letzte Aktivität"
+      },
+      "health_score": {
+        "name": "Gesundheits-Bewertung"
+      },
+      "mood": {
+        "name": "Stimmung und Wohlbefinden"
+      },
+      "weekly_summary": {
+        "name": "Wöchentliche Zusammenfassung"
+      }
+    },
+    "button": {
+      "daily_reset_button": {
+        "name": "Täglicher Reset"
+      },
+      "feeding_reminder_button": {
+        "name": "Fütterungserinnerung senden"
+      },
+      "test_notification_button": {
+        "name": "Test-Benachrichtigung"
+      },
+      "emergency_button": {
+        "name": "Notfall aktivieren"
+      },
+      "quick_outside_button": {
+        "name": "Schnell: War draußen"
+      },
+      "quick_feeding_button": {
+        "name": "Schnell: Gefüttert"
+      },
+      "morning_feeding_button": {
+        "name": "Frühstück gegeben"
+      },
+      "lunch_feeding_button": {
+        "name": "Mittagessen gegeben"
+      },
+      "evening_feeding_button": {
+        "name": "Abendessen gegeben"
+      },
+      "snack_button": {
+        "name": "Leckerli gegeben"
+      }
+    }
+  }
+}
