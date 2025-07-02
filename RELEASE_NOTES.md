@@ -1,9 +1,9 @@
-# 🐾 Hundesystem v1.0.2
+# 🐾 Hundesystem v1.0.2b
 
-🔧 Patch-Release – Wiederherstellung und Verbesserungen:
+📦 Erweiterter Patch-Release mit:
 
-- ✅ Ursprünglicher `dashboard.py`-Code vollständig wiederhergestellt
-- ➕ Mushroom UI-Karten, Besuchshund-Modus, Timeline, Statistik integriert
-- 🧠 `__init__.py` repariert und um neue Services ergänzt (ohne Überschreiben)
-- 📊 Neues `sensor.py` für dynamische Erweiterung vorbereitet
-- 🚀 Bereit für HACS & GitHub Release
+- 🧠 Dynamischer Erzeugung von Statistik-Sensoren (`sensor.walks_daily_*`, `sensor.feeding_weekly_*`)
+- Kein YAML mehr nötig für `utility_meter`
+- Vollständig UI-basiertes Setup
+- Basierend auf stabilem Code-Merge aus `v1.0.2`
+
