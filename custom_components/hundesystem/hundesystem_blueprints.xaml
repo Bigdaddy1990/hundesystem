@@ -1,0 +1,54 @@
+blueprint:
+  name: Hund draußen & Kack-Logik
+  description: Erkennt mehrfaches Türschließen, fragt ob Hund draußen war und ob er gekackt hat.
+  domain: automation
+  input:
+    fenster_sensor:
+      name: Türsensor
+      selector:
+        entity:
+          domain: binary_sensor
+    push_geraete:
+      name: Pushgeräte (kommasepariert)
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input fenster_sensor
+    to: "off"
+
+variables:
+  push_dienste: "{{ iif(',' in push_geraete, push_geraete.split(', '), [push_geraete]) }}"
+
+action:
+  - service: counter.increment
+    target:
+      entity_id: counter.tueroeffnung_zaehler
+
+  - delay: "00:00:02"
+
+  - condition: numeric_state
+    entity_id: counter.tueroeffnung_zaehler
+    above: 1
+
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.war_draussen
+
+  - repeat:
+      for_each: "{{ push_dienste }}"
+      sequence:
+        - service: "{{ repeat.item }}"
+          data:
+            title: "🐾 Hund draußen?"
+            message: "War der Hund draußen? Bitte bestätigen."
+            data:
+              actions:
+                - action: "HUND_DRAUSSEN"
+                  title: "Ja"
+                - action: "HUND_NICHT"
+                  title: "Nein"
+
+  - service: counter.reset
+    entity_id: counter.tueroeffnung_zaehler

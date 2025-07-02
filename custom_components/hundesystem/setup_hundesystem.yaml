@@ -1,0 +1,22 @@
+alias: Setup Hundesystem
+description: Erstellt benötigte Helfer und initialisiert das Hundesystem
+mode: single
+sequence:
+  - service: input_boolean.set_value
+    data:
+      value: false
+    target:
+      entity_id:
+        - input_boolean.war_draussen
+        - input_boolean.hund_hat_gekackt
+        - input_boolean.besuchshund_aktiv
+
+  - service: counter.reset
+    target:
+      entity_id:
+        - counter.hund_gekackt
+        - counter.hund_gassi_anzahl
+        - counter.tueroeffnung_zaehler
+
+  - service: script.reload
+  - service: automation.reload
