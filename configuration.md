@@ -1,5 +1,0 @@
-# Konfiguration – Hundesystem
-
-## Setup
-
-...
