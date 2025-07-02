@@ -1,1 +1,0 @@
-# Backendlogik für Adminpanel

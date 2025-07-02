@@ -1,1 +1,0 @@
-# Sensor-Registrierung, automatische Erstellung

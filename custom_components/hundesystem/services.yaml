@@ -1,9 +1,0 @@
-track_gassi:
-  description: Erfasst eine Gassi-Auslösung über den Türsensor
-  fields:
-    sensor:
-      description: Türsensor
-      example: binary_sensor.tuersensor
-    hundeliste:
-      description: Liste der Hundenamen
-      example: "rex, bella"

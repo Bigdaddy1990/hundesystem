@@ -1,1 +1,0 @@
-# Logik zur Push-Versendung mit Anwesenheitsprüfung
