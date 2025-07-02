@@ -1,357 +1,591 @@
-"""Sensor platform for Hundesystem."""
+"""Sensor platform for Hundesystem integration."""
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.const import STATE_ON, STATE_OFF
+from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, CONF_NAME, FEEDING_TYPES, ICONS, MEAL_TRANSLATIONS
+from .const import (
+    DOMAIN,
+    CONF_DOG_NAME,
+    ICONS,
+    ENTITIES,
+    STATUS_MESSAGES,
+    MEAL_TYPES,
+    ACTIVITY_TYPES,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Hundesystem sensors."""
-    name = config_entry.data.get(CONF_NAME, "hund")
+    """Set up Hundesystem sensors based on a config entry."""
+    dog_name = config_entry.data[CONF_DOG_NAME]
     
-    entities = []
+    entities = [
+        HundesystemStatusSensor(hass, config_entry, dog_name),
+        HundesystemFeedingStatusSensor(hass, config_entry, dog_name),
+        HundesystemActivitySensor(hass, config_entry, dog_name),
+        HundesystemDailySummarySensor(hass, config_entry, dog_name),
+        HundesystemLastActivitySensor(hass, config_entry, dog_name),
+    ]
     
-    # Status sensor
-    entities.append(HundeStatusSensor(hass, name))
-    
-    # Feeding status sensor
-    entities.append(HundeFeedingStatusSensor(hass, name))
-    
-    # Activity sensor
-    entities.append(HundeActivitySensor(hass, name))
-    
-    # Daily summary sensor
-    entities.append(HundeDailySummarySensor(hass, name))
-    
-    # Last activity sensor
-    entities.append(HundeLastActivitySensor(hass, name))
-    
-    async_add_entities(entities)
+    async_add_entities(entities, True)
 
-class HundeStatusSensor(SensorEntity):
+
+class HundesystemSensorBase(SensorEntity, RestoreEntity):
+    """Base class for Hundesystem sensors."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+        sensor_type: str,
+    ) -> None:
+        """Initialize the sensor."""
+        self.hass = hass
+        self._config_entry = config_entry
+        self._dog_name = dog_name
+        self._sensor_type = sensor_type
+        self._attr_unique_id = f"{DOMAIN}_{dog_name}_{sensor_type}"
+        self._attr_name = f"{dog_name.title()} {sensor_type.replace('_', ' ').title()}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, dog_name)},
+            "name": f"Hundesystem {dog_name.title()}",
+            "manufacturer": "Hundesystem",
+            "model": "Dog Management System",
+            "sw_version": "1.0.0",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        
+        # Restore previous state
+        if (old_state := await self.async_get_last_state()) is not None:
+            self._attr_native_value = old_state.state
+
+
+class HundesystemStatusSensor(HundesystemSensorBase):
     """Sensor for overall dog status."""
-    
-    def __init__(self, hass: HomeAssistant, name: str):
-        """Initialize the sensor."""
-        self.hass = hass
-        self._name = name
-        self._attr_name = f"{name.title()} Status"
-        self._attr_unique_id = f"{name}_status"
-        self._attr_icon = ICONS["status"]
-        self._attr_device_class = None
-        
-        # Track relevant entities
-        self._tracked_entities = []
-        for feeding_type in FEEDING_TYPES:
-            self._tracked_entities.append(f"input_boolean.{name}_feeding_{feeding_type}")
-        self._tracked_entities.append(f"input_boolean.{name}_outside")
-        self._tracked_entities.append(f"input_boolean.{name}_visitor_mode")
-        
-        self._update_state()
-    
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        @callback
-        def sensor_state_listener(event):
-            """Handle state changes."""
-            self._update_state()
-            self.async_write_ha_state()
-        
-        # Track state changes
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, self._tracked_entities, sensor_state_listener
-            )
-        )
-    
-    def _update_state(self):
-        """Update the sensor state."""
-        fed_count = 0
-        total_feedings = len(FEEDING_TYPES)
-        
-        for feeding_type in FEEDING_TYPES:
-            entity_id = f"input_boolean.{self._name}_feeding_{feeding_type}"
-            if self.hass.states.get(entity_id, {}).state == STATE_ON:
-                fed_count += 1
-        
-        outside_state = self.hass.states.get(f"input_boolean.{self._name}_outside", {}).state
-        visitor_mode = self.hass.states.get(f"input_boolean.{self._name}_visitor_mode", {}).state
-        
-        if visitor_mode == STATE_ON:
-            self._attr_native_value = "Besuchsmodus"
-        elif fed_count == total_feedings and outside_state == STATE_ON:
-            self._attr_native_value = "Vollständig versorgt"
-        elif fed_count == total_feedings:
-            self._attr_native_value = "Gefüttert, war noch nicht draußen"
-        elif outside_state == STATE_ON:
-            self._attr_native_value = f"War draußen, {fed_count}/{total_feedings} Fütterungen"
-        elif fed_count > 0:
-            self._attr_native_value = f"{fed_count}/{total_feedings} Fütterungen erledigt"
-        else:
-            self._attr_native_value = "Noch nichts erledigt"
-        
-        # Set icon based on status
-        if visitor_mode == STATE_ON:
-            self._attr_icon = ICONS["visitor_mode"]
-        elif fed_count == total_feedings and outside_state == STATE_ON:
-            self._attr_icon = "mdi:heart"
-        else:
-            self._attr_icon = ICONS["dog"]
 
-class HundeFeedingStatusSensor(SensorEntity):
-    """Sensor for feeding status."""
-    
-    def __init__(self, hass: HomeAssistant, name: str):
-        """Initialize the sensor."""
-        self.hass = hass
-        self._name = name
-        self._attr_name = f"{name.title()} Fütterungsstatus"
-        self._attr_unique_id = f"{name}_feeding_status"
-        self._attr_icon = "mdi:food-variant"
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
+        """Initialize the status sensor."""
+        super().__init__(hass, config_entry, dog_name, ENTITIES["status"])
+        self._attr_icon = ICONS["dog"]
         
-        # Track feeding entities
-        self._tracked_entities = []
-        for feeding_type in FEEDING_TYPES:
-            self._tracked_entities.append(f"input_boolean.{name}_feeding_{feeding_type}")
-            self._tracked_entities.append(f"counter.{name}_feeding_{feeding_type}")
+        # Entities to monitor for status calculation
+        self._feeding_entities = [
+            f"input_boolean.{dog_name}_feeding_morning",
+            f"input_boolean.{dog_name}_feeding_lunch",
+            f"input_boolean.{dog_name}_feeding_evening",
+        ]
+        self._outside_entity = f"input_boolean.{dog_name}_outside"
+        self._visitor_entity = f"input_boolean.{dog_name}_visitor_mode_input"
+        self._needs_attention_entity = f"binary_sensor.{dog_name}_needs_attention"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
         
-        self._update_state()
-    
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        @callback
-        def sensor_state_listener(event):
-            """Handle state changes."""
-            self._update_state()
-            self.async_write_ha_state()
-        
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, self._tracked_entities, sensor_state_listener
-            )
+        # Track all relevant entities
+        tracked_entities = (
+            self._feeding_entities + 
+            [self._outside_entity, self._visitor_entity, self._needs_attention_entity]
         )
-    
-    def _update_state(self):
-        """Update the sensor state."""
-        fed_meals = []
-        total_count = 0
+        async_track_state_change_event(
+            self.hass, tracked_entities, self._async_status_changed
+        )
         
-        for feeding_type in FEEDING_TYPES:
-            boolean_entity = f"input_boolean.{self._name}_feeding_{feeding_type}"
-            counter_entity = f"counter.{self._name}_feeding_{feeding_type}"
-            
-            if self.hass.states.get(boolean_entity, {}).state == STATE_ON:
-                meal_name = MEAL_TRANSLATIONS.get(feeding_type, feeding_type)
-                fed_meals.append(meal_name)
-            
-            counter_state = self.hass.states.get(counter_entity, {})
-            if counter_state.state and counter_state.state.isdigit():
-                total_count += int(counter_state.state)
+        # Initial update
+        await self._async_update_status()
+
+    @callback
+    async def _async_status_changed(self, event) -> None:
+        """Handle state changes that affect overall status."""
+        await self._async_update_status()
+        self.async_write_ha_state()
+
+    async def _async_update_status(self) -> None:
+        """Update the overall status."""
+        # Check visitor mode
+        visitor_state = self.hass.states.get(self._visitor_entity)
+        visitor_mode = visitor_state.state == "on" if visitor_state else False
         
-        if fed_meals:
-            self._attr_native_value = f"{', '.join(fed_meals)} ({total_count} gesamt)"
+        if visitor_mode:
+            self._attr_native_value = STATUS_MESSAGES["visitor_mode"]
+            self._attr_icon = ICONS["visitor"]
         else:
-            self._attr_native_value = f"Noch nicht gefüttert ({total_count} gesamt)"
+            # Check if attention is needed
+            attention_state = self.hass.states.get(self._needs_attention_entity)
+            needs_attention = attention_state.state == "on" if attention_state else False
+            
+            if needs_attention:
+                self._attr_native_value = STATUS_MESSAGES["attention_needed"]
+                self._attr_icon = ICONS["attention"]
+            else:
+                # Check feeding status
+                fed_count = 0
+                for entity_id in self._feeding_entities:
+                    state = self.hass.states.get(entity_id)
+                    if state and state.state == "on":
+                        fed_count += 1
+                
+                # Check outside status
+                outside_state = self.hass.states.get(self._outside_entity)
+                was_outside = outside_state.state == "on" if outside_state else False
+                
+                if fed_count == len(self._feeding_entities) and was_outside:
+                    self._attr_native_value = STATUS_MESSAGES["all_good"]
+                    self._attr_icon = ICONS["complete"]
+                elif fed_count < len(self._feeding_entities):
+                    self._attr_native_value = STATUS_MESSAGES["needs_feeding"]
+                    self._attr_icon = ICONS["food"]
+                elif not was_outside:
+                    self._attr_native_value = STATUS_MESSAGES["needs_outside"]
+                    self._attr_icon = ICONS["walk"]
+                else:
+                    self._attr_native_value = STATUS_MESSAGES["all_good"]
+                    self._attr_icon = ICONS["dog"]
         
         # Update attributes
         self._attr_extra_state_attributes = {
-            "fed_meals": fed_meals,
-            "total_count": total_count,
-            "fed_count": len(fed_meals),
-            "remaining_meals": len(FEEDING_TYPES) - len(fed_meals)
+            "visitor_mode": visitor_mode,
+            "feeding_progress": f"{fed_count}/{len(self._feeding_entities)}",
+            "was_outside": outside_state.state == "on" if outside_state else False,
+            "last_updated": datetime.now().isoformat(),
         }
 
-class HundeActivitySensor(SensorEntity):
-    """Sensor for activity status."""
-    
-    def __init__(self, hass: HomeAssistant, name: str):
-        """Initialize the sensor."""
-        self.hass = hass
-        self._name = name
-        self._attr_name = f"{name.title()} Aktivitäten"
-        self._attr_unique_id = f"{name}_activity"
-        self._attr_icon = ICONS["outside"]
+
+class HundesystemFeedingStatusSensor(HundesystemSensorBase):
+    """Sensor for feeding status."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
+        """Initialize the feeding status sensor."""
+        super().__init__(hass, config_entry, dog_name, ENTITIES["feeding_status"])
+        self._attr_icon = ICONS["food"]
         
-        self._tracked_entities = [
-            f"input_boolean.{name}_outside",
-            f"counter.{name}_outside"
+        self._feeding_entities = [
+            f"input_boolean.{dog_name}_feeding_morning",
+            f"input_boolean.{dog_name}_feeding_lunch",
+            f"input_boolean.{dog_name}_feeding_evening",
+            f"input_boolean.{dog_name}_feeding_snack",
         ]
+        self._feeding_counters = [
+            f"counter.{dog_name}_feeding_count",
+        ]
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
         
-        self._update_state()
-    
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        @callback
-        def sensor_state_listener(event):
-            """Handle state changes."""
-            self._update_state()
-            self.async_write_ha_state()
-        
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, self._tracked_entities, sensor_state_listener
-            )
+        # Track feeding entities
+        tracked_entities = self._feeding_entities + self._feeding_counters
+        async_track_state_change_event(
+            self.hass, tracked_entities, self._async_feeding_status_changed
         )
-    
-    def _update_state(self):
-        """Update the sensor state."""
-        outside_state = self.hass.states.get(f"input_boolean.{self._name}_outside", {}).state
-        counter_state = self.hass.states.get(f"counter.{self._name}_outside", {})
         
-        outside_count = 0
-        if counter_state.state and counter_state.state.isdigit():
-            outside_count = int(counter_state.state)
+        # Initial update
+        await self._async_update_feeding_status()
+
+    @callback
+    async def _async_feeding_status_changed(self, event) -> None:
+        """Handle feeding status changes."""
+        await self._async_update_feeding_status()
+        self.async_write_ha_state()
+
+    async def _async_update_feeding_status(self) -> None:
+        """Update the feeding status."""
+        feeding_status = {}
+        total_fed = 0
         
-        if outside_state == STATE_ON:
-            self._attr_native_value = f"War draußen ({outside_count} mal heute)"
+        for entity_id in self._feeding_entities:
+            meal_type = entity_id.split("_")[-1]
+            state = self.hass.states.get(entity_id)
+            is_fed = state.state == "on" if state else False
+            feeding_status[meal_type] = is_fed
+            if is_fed:
+                total_fed += 1
+        
+        # Get feeding counter
+        counter_state = self.hass.states.get(self._feeding_counters[0])
+        total_feedings = int(counter_state.state) if counter_state else 0
+        
+        # Determine status message
+        if total_fed == 0:
+            status = "Noch nicht gefüttert"
+        elif total_fed < 3:  # Morning, lunch, evening are essential
+            status = f"Teilweise gefüttert ({total_fed}/3)"
         else:
-            self._attr_native_value = f"War noch nicht draußen ({outside_count} mal heute)"
+            status = "Vollständig gefüttert"
         
+        self._attr_native_value = status
+        
+        # Update attributes
         self._attr_extra_state_attributes = {
-            "outside_today": outside_count,
-            "was_outside": outside_state == STATE_ON
+            "meals_today": feeding_status,
+            "total_meals_completed": total_fed,
+            "total_feedings_count": total_feedings,
+            "next_meal": self._get_next_meal_time(),
         }
 
-class HundeDailySummarySensor(SensorEntity):
+    def _get_next_meal_time(self) -> str | None:
+        """Get the next scheduled meal time."""
+        now = datetime.now()
+        hour = now.hour
+        
+        if hour < 8:
+            return "Frühstück (08:00)"
+        elif hour < 12:
+            return "Mittagessen (12:00)"
+        elif hour < 18:
+            return "Abendessen (18:00)"
+        else:
+            return "Frühstück (08:00 morgen)"
+
+
+class HundesystemActivitySensor(HundesystemSensorBase):
+    """Sensor for activity tracking."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
+        """Initialize the activity sensor."""
+        super().__init__(hass, config_entry, dog_name, ENTITIES["activity"])
+        self._attr_icon = ICONS["walk"]
+        
+        self._outside_entity = f"input_boolean.{dog_name}_outside"
+        self._activity_counter = f"counter.{dog_name}_activity_count"
+        self._outside_counter = f"counter.{dog_name}_outside_count"
+        self._last_outside_entity = f"input_datetime.{dog_name}_last_outside"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        
+        # Track activity entities
+        tracked_entities = [
+            self._outside_entity,
+            self._activity_counter,
+            self._outside_counter,
+            self._last_outside_entity,
+        ]
+        async_track_state_change_event(
+            self.hass, tracked_entities, self._async_activity_changed
+        )
+        
+        # Initial update
+        await self._async_update_activity()
+
+    @callback
+    async def _async_activity_changed(self, event) -> None:
+        """Handle activity changes."""
+        await self._async_update_activity()
+        self.async_write_ha_state()
+
+    async def _async_update_activity(self) -> None:
+        """Update the activity status."""
+        # Check if currently outside
+        outside_state = self.hass.states.get(self._outside_entity)
+        currently_outside = outside_state.state == "on" if outside_state else False
+        
+        # Get activity counters
+        activity_count_state = self.hass.states.get(self._activity_counter)
+        outside_count_state = self.hass.states.get(self._outside_counter)
+        
+        activity_count = int(activity_count_state.state) if activity_count_state else 0
+        outside_count = int(outside_count_state.state) if outside_count_state else 0
+        
+        # Get last outside time
+        last_outside_state = self.hass.states.get(self._last_outside_entity)
+        last_outside = None
+        if last_outside_state and last_outside_state.state not in ["unknown", "unavailable"]:
+            try:
+                last_outside = datetime.fromisoformat(last_outside_state.state.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                pass
+        
+        # Determine activity status
+        if currently_outside:
+            status = "Gerade draußen"
+        elif outside_count > 0:
+            status = f"War {outside_count}x draußen heute"
+        else:
+            status = "War noch nicht draußen"
+        
+        self._attr_native_value = status
+        
+        # Update attributes
+        self._attr_extra_state_attributes = {
+            "currently_outside": currently_outside,
+            "times_outside_today": outside_count,
+            "total_activities_today": activity_count,
+            "last_outside": last_outside.isoformat() if last_outside else None,
+            "activity_level": self._calculate_activity_level(activity_count, outside_count),
+        }
+
+    def _calculate_activity_level(self, activity_count: int, outside_count: int) -> str:
+        """Calculate activity level based on counts."""
+        total_activities = activity_count + outside_count
+        
+        if total_activities >= 5:
+            return "Sehr aktiv"
+        elif total_activities >= 3:
+            return "Aktiv"
+        elif total_activities >= 1:
+            return "Wenig aktiv"
+        else:
+            return "Inaktiv"
+
+
+class HundesystemDailySummarySensor(HundesystemSensorBase):
     """Sensor for daily summary."""
-    
-    def __init__(self, hass: HomeAssistant, name: str):
-        """Initialize the sensor."""
-        self.hass = hass
-        self._name = name
-        self._attr_name = f"{name.title()} Tageszusammenfassung"
-        self._attr_unique_id = f"{name}_daily_summary"
-        self._attr_icon = "mdi:calendar-today"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
+        """Initialize the daily summary sensor."""
+        super().__init__(hass, config_entry, dog_name, ENTITIES["daily_summary"])
+        self._attr_icon = ICONS["notes"]
+        
+        # All entities to include in summary
+        self._feeding_entities = [
+            f"input_boolean.{dog_name}_feeding_morning",
+            f"input_boolean.{dog_name}_feeding_lunch",
+            f"input_boolean.{dog_name}_feeding_evening",
+            f"input_boolean.{dog_name}_feeding_snack",
+        ]
+        self._counters = [
+            f"counter.{dog_name}_feeding_count",
+            f"counter.{dog_name}_outside_count", 
+            f"counter.{dog_name}_activity_count",
+        ]
+        self._other_entities = [
+            f"input_boolean.{dog_name}_outside",
+            f"input_boolean.{dog_name}_visitor_mode_input",
+        ]
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
         
         # Track all relevant entities
-        self._tracked_entities = []
-        for feeding_type in FEEDING_TYPES:
-            self._tracked_entities.append(f"input_boolean.{name}_feeding_{feeding_type}")
-            self._tracked_entities.append(f"counter.{name}_feeding_{feeding_type}")
-        self._tracked_entities.extend([
-            f"input_boolean.{name}_outside",
-            f"counter.{name}_outside",
-            f"input_boolean.{name}_visitor_mode"
-        ])
-        
-        self._update_state()
-    
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        @callback
-        def sensor_state_listener(event):
-            """Handle state changes."""
-            self._update_state()
-            self.async_write_ha_state()
-        
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, self._tracked_entities, sensor_state_listener
-            )
+        tracked_entities = self._feeding_entities + self._counters + self._other_entities
+        async_track_state_change_event(
+            self.hass, tracked_entities, self._async_summary_changed
         )
-    
-    def _update_state(self):
-        """Update the sensor state."""
-        summary_data = {}
-        total_activities = 0
         
-        # Feeding data
-        for feeding_type in FEEDING_TYPES:
-            counter_entity = f"counter.{self._name}_feeding_{feeding_type}"
-            counter_state = self.hass.states.get(counter_entity, {})
-            count = 0
-            if counter_state.state and counter_state.state.isdigit():
-                count = int(counter_state.state)
-            
-            summary_data[f"feeding_{feeding_type}"] = count
-            total_activities += count
-        
-        # Outside activity
-        outside_counter = self.hass.states.get(f"counter.{self._name}_outside", {})
-        outside_count = 0
-        if outside_counter.state and outside_counter.state.isdigit():
-            outside_count = int(outside_counter.state)
-        
-        summary_data["outside"] = outside_count
-        total_activities += outside_count
-        
-        # Visitor mode
-        visitor_mode = self.hass.states.get(f"input_boolean.{self._name}_visitor_mode", {}).state
-        summary_data["visitor_mode"] = visitor_mode == STATE_ON
-        
-        self._attr_native_value = f"{total_activities} Aktivitäten heute"
-        self._attr_extra_state_attributes = summary_data
+        # Initial update
+        await self._async_update_summary()
 
-class HundeLastActivitySensor(SensorEntity):
-    """Sensor for last activity timestamp."""
-    
-    def __init__(self, hass: HomeAssistant, name: str):
-        """Initialize the sensor."""
-        self.hass = hass
-        self._name = name
-        self._attr_name = f"{name.title()} Letzte Aktivität"
-        self._attr_unique_id = f"{name}_last_activity"
-        self._attr_icon = "mdi:clock-outline"
-        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+    @callback
+    async def _async_summary_changed(self, event) -> None:
+        """Handle summary relevant changes."""
+        await self._async_update_summary()
+        self.async_write_ha_state()
+
+    async def _async_update_summary(self) -> None:
+        """Update the daily summary."""
+        # Count completed meals
+        meals_completed = 0
+        meal_details = {}
         
-        # Track all activity entities
-        self._tracked_entities = []
-        for feeding_type in FEEDING_TYPES:
-            self._tracked_entities.append(f"input_boolean.{name}_feeding_{feeding_type}")
-        self._tracked_entities.append(f"input_boolean.{name}_outside")
+        for entity_id in self._feeding_entities:
+            meal_type = entity_id.split("_")[-1]
+            state = self.hass.states.get(entity_id)
+            is_completed = state.state == "on" if state else False
+            meal_details[meal_type] = is_completed
+            if is_completed:
+                meals_completed += 1
         
-        self._last_activity = None
-        self._update_state()
-    
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        @callback
-        def sensor_state_listener(event):
-            """Handle state changes."""
-            if event.data.get("new_state") and event.data["new_state"].state == STATE_ON:
-                self._last_activity = datetime.now()
-                self._update_state()
-                self.async_write_ha_state()
+        # Get counter values
+        feeding_count = 0
+        outside_count = 0
+        activity_count = 0
         
-        self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, self._tracked_entities, sensor_state_listener
-            )
-        )
-    
-    def _update_state(self):
-        """Update the sensor state."""
-        if self._last_activity:
-            self._attr_native_value = self._last_activity
-        else:
-            self._attr_native_value = None
-        
-        # Add time since last activity
-        if self._last_activity:
-            time_diff = datetime.now() - self._last_activity
-            hours = int(time_diff.total_seconds() // 3600)
-            minutes = int((time_diff.total_seconds() % 3600) // 60)
+        for counter_id in self._counters:
+            state = self.hass.states.get(counter_id)
+            count = int(state.state) if state else 0
             
-            self._attr_extra_state_attributes = {
-                "hours_since": hours,
-                "minutes_since": minutes,
-                "last_activity_iso": self._last_activity.isoformat() if self._last_activity else None
-            }
+            if "feeding" in counter_id:
+                feeding_count = count
+            elif "outside" in counter_id:
+                outside_count = count
+            elif "activity" in counter_id:
+                activity_count = count
+        
+        # Check other status
+        outside_state = self.hass.states.get(self._other_entities[0])
+        visitor_state = self.hass.states.get(self._other_entities[1])
+        
+        was_outside = outside_state.state == "on" if outside_state else False
+        visitor_mode = visitor_state.state == "on" if visitor_state else False
+        
+        # Generate summary text
+        summary_parts = []
+        
+        if visitor_mode:
+            summary_parts.append("🏠 Besuchsmodus aktiv")
+        
+        summary_parts.append(f"🍽️ Mahlzeiten: {meals_completed}/4")
+        
+        if was_outside or outside_count > 0:
+            summary_parts.append(f"🚶 Draußen: {outside_count}x")
         else:
-            self._attr_extra_state_attributes = {
-                "hours_since": None,
-                "minutes_since": None,
-                "last_activity_iso": None
-            }
+            summary_parts.append("🚶 Noch nicht draußen")
+        
+        if activity_count > 0:
+            summary_parts.append(f"🎾 Aktivitäten: {activity_count}")
+        
+        summary = " | ".join(summary_parts)
+        self._attr_native_value = summary
+        
+        # Calculate completion percentage
+        total_tasks = 4  # 3 main meals + outside
+        completed_tasks = min(meals_completed, 3) + (1 if was_outside else 0)
+        completion_percentage = round((completed_tasks / total_tasks) * 100)
+        
+        # Update attributes
+        self._attr_extra_state_attributes = {
+            "meals_completed": meals_completed,
+            "meal_details": meal_details,
+            "feeding_count": feeding_count,
+            "outside_count": outside_count,
+            "activity_count": activity_count,
+            "was_outside": was_outside,
+            "visitor_mode": visitor_mode,
+            "completion_percentage": completion_percentage,
+            "day_rating": self._calculate_day_rating(completion_percentage, activity_count),
+            "generated_at": datetime.now().isoformat(),
+        }
+
+    def _calculate_day_rating(self, completion_percentage: int, activity_count: int) -> str:
+        """Calculate a rating for the day."""
+        if completion_percentage >= 100 and activity_count >= 3:
+            return "🌟 Perfekter Tag"
+        elif completion_percentage >= 75:
+            return "😊 Guter Tag"
+        elif completion_percentage >= 50:
+            return "😐 Durchschnittlicher Tag"
+        else:
+            return "😔 Verbesserungsbedarf"
+
+
+class HundesystemLastActivitySensor(HundesystemSensorBase):
+    """Sensor for last activity timestamp."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
+        """Initialize the last activity sensor."""
+        super().__init__(hass, config_entry, dog_name, ENTITIES["last_activity"])
+        self._attr_icon = ICONS["notes"]
+        self._attr_device_class = "timestamp"
+        
+        # Entities that count as activities
+        self._activity_entities = [
+            f"input_boolean.{dog_name}_feeding_morning",
+            f"input_boolean.{dog_name}_feeding_lunch",
+            f"input_boolean.{dog_name}_feeding_evening",
+            f"input_boolean.{dog_name}_feeding_snack",
+            f"input_boolean.{dog_name}_outside",
+        ]
+        
+        self._notes_entity = f"input_text.{dog_name}_last_activity_notes"
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        
+        # Track activity entities
+        async_track_state_change_event(
+            self.hass, self._activity_entities, self._async_activity_tracked
+        )
+        
+        # Initial update
+        await self._async_update_last_activity()
+
+    @callback
+    async def _async_activity_tracked(self, event) -> None:
+        """Handle activity tracking."""
+        # Only update if state changed to 'on'
+        if event.data.get("new_state") and event.data["new_state"].state == "on":
+            await self._async_update_last_activity()
+            self.async_write_ha_state()
+
+    async def _async_update_last_activity(self) -> None:
+        """Update the last activity timestamp."""
+        now = datetime.now()
+        self._attr_native_value = now.isoformat()
+        
+        # Get notes if available
+        notes_state = self.hass.states.get(self._notes_entity)
+        notes = notes_state.state if notes_state else ""
+        
+        # Find which activity was last triggered
+        last_activity = "Unbekannt"
+        for entity_id in self._activity_entities:
+            state = self.hass.states.get(entity_id)
+            if state and state.state == "on":
+                activity_type = entity_id.split("_")[-1]
+                if "feeding" in entity_id:
+                    meal_type = activity_type
+                    last_activity = f"Fütterung: {MEAL_TYPES.get(meal_type, meal_type)}"
+                elif "outside" in entity_id:
+                    last_activity = "Draußen"
+                break
+        
+        self._attr_extra_state_attributes = {
+            "last_activity_type": last_activity,
+            "timestamp": now.isoformat(),
+            "notes": notes,
+            "time_ago": self._format_time_ago(now),
+        }
+
+    def _format_time_ago(self, timestamp: datetime) -> str:
+        """Format time ago in human readable format."""
+        now = datetime.now()
+        diff = now - timestamp
+        
+        if diff.total_seconds() < 60:
+            return "Gerade eben"
+        elif diff.total_seconds() < 3600:
+            minutes = int(diff.total_seconds() / 60)
+            return f"Vor {minutes} Minute{'n' if minutes != 1 else ''}"
+        elif diff.total_seconds() < 86400:
+            hours = int(diff.total_seconds() / 3600)
+            return f"Vor {hours} Stunde{'n' if hours != 1 else ''}"
+        else:
+            days = int(diff.total_seconds() / 86400)
+            return f"Vor {days} Tag{'en' if days != 1 else ''}"
