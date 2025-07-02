@@ -285,4 +285,3 @@ SEASONAL_ADJUSTMENTS = {
         "de_ice_paws": True
     }
 }
-    "
