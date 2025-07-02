@@ -1,9 +1,7 @@
-# 🐾 Hundesystem v1.0.2b
+# 🐾 Hundesystem v1.0.3
 
-📦 Erweiterter Patch-Release mit:
+✅ Reparatur-Release – UI-Konfigurationsfluss funktioniert jetzt korrekt:
 
-- 🧠 Dynamischer Erzeugung von Statistik-Sensoren (`sensor.walks_daily_*`, `sensor.feeding_weekly_*`)
-- Kein YAML mehr nötig für `utility_meter`
-- Vollständig UI-basiertes Setup
-- Basierend auf stabilem Code-Merge aus `v1.0.2`
-
+- `config_flow.py` wiederhergestellt
+- `manifest.json` korrigiert (`"config_flow": true`)
+- Bestehende Features aus 1.0.2b bleiben vollständig erhalten
