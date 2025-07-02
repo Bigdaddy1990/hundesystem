@@ -1,22 +1,48 @@
-alias: Setup Hundesystem
-description: Erstellt benötigte Helfer und initialisiert das Hundesystem
-mode: single
-sequence:
-  - service: input_boolean.set_value
-    data:
-      value: false
-    target:
-      entity_id:
-        - input_boolean.war_draussen
-        - input_boolean.hund_hat_gekackt
-        - input_boolean.besuchshund_aktiv
-
-  - service: counter.reset
-    target:
-      entity_id:
-        - counter.hund_gekackt
-        - counter.hund_gassi_anzahl
-        - counter.tueroeffnung_zaehler
-
-  - service: script.reload
-  - service: automation.reload
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Hundesystem",
+        "description": "Configure your Hundesystem for managing feeding, activities and routines.",
+        "data": {
+          "dog_name": "Dog Name",
+          "push_devices": "Notification Devices",
+          "person_tracking": "Enable Person Tracking",
+          "create_dashboard": "Auto-create Dashboard"
+        },
+        "data_description": {
+          "dog_name": "A unique name for your dog (letters only)",
+          "push_devices": "Select devices for push notifications",
+          "person_tracking": "Advanced features for person tracking", 
+          "create_dashboard": "Automatically creates a Mushroom dashboard"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to notification services",
+      "invalid_auth": "Invalid configuration",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured for this dog"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hundesystem Options",
+        "description": "Change settings for your Hundesystem.",
+        "data": {
+          "push_devices": "Notification Devices",
+          "person_tracking": "Enable Person Tracking",
+          "create_dashboard": "Auto-create Dashboard"
+        },
+        "data_description": {
+          "push_devices": "Select devices for push notifications",
+          "person_tracking": "Advanced features for person tracking",
+          "create_dashboard": "Automatically creates a Mushroom dashboard"
+        }
+      }
+    }
+  }
+}
