@@ -1,0 +1,81 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+        
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov homeassistant colorlog voluptuous
+          
+      - name: Run basic import tests
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'custom_components')
+          
+          # Test basic imports
+          try:
+              from hundesystem import const
+              print('✅ Constants import successful')
+              
+              from hundesystem.const import DOMAIN, MEAL_TYPES, ICONS
+              print(f'✅ Domain: {DOMAIN}')
+              print(f'✅ Meal types: {list(MEAL_TYPES.keys())}')
+              print(f'✅ Icons available: {len(ICONS)}')
+              
+          except Exception as e:
+              print(f'❌ Import failed: {e}')
+              sys.exit(1)
+          "
+          
+      - name: Test configuration validation
+        run: |
+          python -c "
+          import sys
+          import re
+          sys.path.insert(0, 'custom_components')
+          
+          from hundesystem.const import DOG_NAME_PATTERN, MEAL_TYPES, ACTIVITY_TYPES
+          
+          # Test dog name pattern
+          valid_names = ['rex', 'bella', 'max_dog', 'dog123']
+          invalid_names = ['123dog', 'dog-name', 'dog.name', '']
+          
+          for name in valid_names:
+              assert re.match(DOG_NAME_PATTERN, name), f'Valid name {name} failed pattern check'
+          print('✅ Valid dog names pass pattern check')
+          
+          for name in invalid_names:
+              assert not re.match(DOG_NAME_PATTERN, name), f'Invalid name {name} passed pattern check'
+          print('✅ Invalid dog names fail pattern check')
+          
+          # Test meal types
+          assert len(MEAL_TYPES) >= 4, 'Should have at least 4 meal types'
+          assert 'morning' in MEAL_TYPES, 'Should have morning meal'
+          print('✅ Meal types validation passed')
+          
+          # Test activity types
+          assert len(ACTIVITY_TYPES) >= 5, 'Should have at least 5 activity types'
+          assert 'walk' in ACTIVITY_TYPES, 'Should have walk activity'
+          print('✅ Activity types validation passed')
+          "
+
+---

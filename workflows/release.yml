@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            custom_components/**/*
+            README.md
+            LICENSE
+            CHANGELOG.md
+          body: |
+            ## 🐶 Hundesystem Release ${{ github.ref_name }}
+            
+            ### What's New
+            See the [CHANGELOG.md](https://github.com/Bigdaddy1990/hundesystem/blob/main/CHANGELOG.md) for detailed changes.
+            
+            ### Installation
+            1. Download and extract the release
+            2. Copy `custom_components/hundesystem` to your Home Assistant `custom_components` directory
+            3. Restart Home Assistant
+            4. Add the integration via Settings → Devices & Services
+            
+            ### HACS Installation
+            1. Add this repository as a custom repository in HACS
+            2. Search for "Hundesystem" and install
+            3. Restart Home Assistant
+            
+            ### Support
+            - 🐛 [Report Issues](https://github.com/Bigdaddy1990/hundesystem/issues)
+            - 💬 [Discussions](https://github.com/Bigdaddy1990/hundesystem/discussions)
+            - 📖 [Documentation](https://github.com/Bigdaddy1990/hundesystem#readme)
+

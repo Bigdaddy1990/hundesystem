@@ -1,0 +1,54 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Check README
+        run: |
+          if [ ! -f "README.md" ]; then
+            echo "❌ README.md missing"
+            exit 1
+          fi
+          
+          # Check for required sections
+          required_sections=(
+            "Installation"
+            "Configuration" 
+            "Features"
+            "Services"
+            "Troubleshooting"
+          )
+          
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "$section" README.md; then
+              echo "❌ Missing section in README: $section"
+              exit 1
+            fi
+          done
+          echo "✅ README.md validation passed"
+          
+      - name: Check documentation completeness
+        run: |
+          # Check if services are documented
+          if [ -f "custom_components/hundesystem/services.yaml" ]; then
+            echo "✅ Services definition exists"
+          fi
+          
+          # Check for translation files
+          if [ -f "custom_components/hundesystem/translations/de.json" ] && 
+             [ -f "custom_components/hundesystem/translations/en.json" ]; then
+            echo "✅ Translation files exist"
+          else
+            echo "❌ Missing translation files"
+            exit 1
+          fi
