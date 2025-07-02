@@ -1,25 +1,113 @@
 trigger_feeding_reminder:
   name: Fütterungserinnerung senden
-  description: Sendet eine Push-Nachricht zur Erinnerung an eine Fütterung.
+  description: Sendet eine Benachrichtigung zur Fütterungserinnerung
   fields:
     meal_type:
-      description: Art der Fütterung (z. B. "morning")
-      example: morning
+      name: Mahlzeit
+      description: Art der Mahlzeit
+      required: true
+      selector:
+        select:
+          options:
+            - value: "morning"
+              label: "Frühstück"
+            - value: "lunch" 
+              label: "Mittagessen"
+            - value: "evening"
+              label: "Abendessen"
+            - value: "snack"
+              label: "Leckerli"
     message:
-      description: Optional benutzerdefinierte Nachricht
-      example: Zeit fürs Frühstück!
+      name: Nachricht
+      description: Benutzerdefinierte Erinnerungsnachricht
+      required: false
+      selector:
+        text:
+          multiline: false
 
 daily_reset:
   name: Täglicher Reset
-  description: Setzt alle Fütterungs- und Aktivitätsdaten zurück.
+  description: Setzt alle Tagesstatistiken zurück
+  fields: {}
 
 send_notification:
-  name: Benutzerdefinierte Nachricht senden
-  description: Sendet eine Push-Nachricht an konfigurierte Geräte.
+  name: Benachrichtigung senden
+  description: Sendet eine benutzerdefinierte Benachrichtigung
   fields:
     title:
-      description: Titel der Nachricht
-      example: Erinnerung
+      name: Titel
+      description: Titel der Benachrichtigung
+      required: true
+      selector:
+        text:
+          multiline: false
     message:
-      description: Nachrichtentext
-      example: Hast du Rex schon gefüttert?
+      name: Nachricht
+      description: Inhalt der Benachrichtigung
+      required: true
+      selector:
+        text:
+          multiline: true
+    target:
+      name: Ziel
+      description: Benachrichtigungsziel (optional)
+      required: false
+      selector:
+        text:
+          multiline: false
+
+set_visitor_mode:
+  name: Besuchsmodus setzen
+  description: Aktiviert oder deaktiviert den Besuchsmodus
+  fields:
+    enabled:
+      name: Aktiviert
+      description: Besuchsmodus aktivieren/deaktivieren
+      required: true
+      selector:
+        boolean:
+    visitor_name:
+      name: Besuchername
+      description: Name des Besuchers oder Hundesitters
+      required: false
+      selector:
+        text:
+          multiline: false
+
+log_activity:
+  name: Aktivität protokollieren
+  description: Protokolliert eine Hundeaktivität
+  fields:
+    activity_type:
+      name: Aktivitätstyp
+      description: Art der Aktivität
+      required: true
+      selector:
+        select:
+          options:
+            - value: "walk"
+              label: "Gassi gehen"
+            - value: "outside"
+              label: "Draußen"
+            - value: "play"
+              label: "Spielen"
+            - value: "training"
+              label: "Training"
+            - value: "other"
+              label: "Sonstiges"
+    duration:
+      name: Dauer
+      description: Dauer der Aktivität in Minuten
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: "min"
+    notes:
+      name: Notizen
+      description: Zusätzliche Notizen zur Aktivität
+      required: false
+      selector:
+        text:
+          multiline: true
