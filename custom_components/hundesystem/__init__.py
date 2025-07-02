@@ -626,3 +626,21 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door
     async_track_state_change(hass, door_sensor, door_sensor_callback)
     
     _LOGGER.info("Door sensor automation set up for %s with sensor %s", dog_name, door_sensor)
+
+# === Erweiterte Services ===
+async def handle_generate_stats(call):
+    from .sensor import async_setup_statistics
+    dog_name = call.data.get("dog_name")
+    await async_setup_statistics(hass, dog_name)
+
+async def handle_generate_automations(call):
+    from .automation_generator import async_generate_automations
+    dog_name = call.data.get("dog_name")
+    notify_target = call.data.get("notify_target")
+    await async_generate_automations(hass, dog_name, notify_target)
+
+from .actionable_push import setup_actionable_notifications
+setup_actionable_notifications(hass)
+
+hass.services.async_register(DOMAIN, "generate_stat_sensors", handle_generate_stats)
+hass.services.async_register(DOMAIN, "generate_automations", handle_generate_automations)

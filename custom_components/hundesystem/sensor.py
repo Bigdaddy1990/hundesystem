@@ -1280,3 +1280,32 @@ class HundesystemWeeklySummarySensor(HundesystemSensorBase):
 # - HundesystemNextEventSensor
 
 # These would follow similar patterns to the sensors above
+
+# === Erweiterung: Statistik-Sensoren automatisch erzeugen ===
+import logging
+_LOGGER = logging.getLogger(__name__)
+from homeassistant.core import HomeAssistant
+
+async def async_setup_statistics(hass: HomeAssistant, dog_name: str):
+    dog_id = dog_name.lower().replace(" ", "_")
+    activities = ["walk", "feeding", "potty"]
+    cycles = ["daily", "weekly"]
+
+    for activity in activities:
+        counter_entity = f"counter.{activity}_{dog_id}"
+        if not hass.states.get(counter_entity):
+            _LOGGER.warning("Zähler %s nicht gefunden – übersprungen", counter_entity)
+            continue
+
+        for cycle in cycles:
+            sensor_id = f"sensor.{activity}s_{cycle}_{dog_id}"
+            await hass.services.async_call(
+                "utility_meter",
+                "calibrate",
+                {
+                    "entity_id": sensor_id,
+                    "value": hass.states.get(counter_entity).state
+                },
+                blocking=True,
+            )
+            _LOGGER.info("Utility-Meter erzeugt: %s", sensor_id)
