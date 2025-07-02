@@ -640,7 +640,6 @@ async def handle_generate_automations(call):
     await async_generate_automations(hass, dog_name, notify_target)
 
 from .actionable_push import setup_actionable_notifications
-setup_actionable_notifications(hass)
 
 hass.services.async_register(DOMAIN, "generate_stat_sensors", handle_generate_stats)
 hass.services.async_register(DOMAIN, "generate_automations", handle_generate_automations)
