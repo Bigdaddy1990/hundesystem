@@ -3,7 +3,7 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Bigdaddy1990/hundesystem)](https://github.com/Bigdaddy1990/hundesystem/releases)
 [![GitHub](https://img.shields.io/github/license/Bigdaddy1990/hundesystem)](LICENSE)
-[![Buy me a coffee](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20me%20a%20coffee&color=6f4e37&logo=buy%20me%20a%20coffee&logoColor=white)](https://ko-fi.com/bigdaddy1990)
+[![Buy me a coffee](https://img.shields.io/static/v1.svg?label=%20&message=Buy%20Dino%20some%20treats&color=6f4e37&logo=buy%20Dino%20some%20treats&logoColor=white)](https://ko-fi.com/bigdaddy1990)
 
 Eine umfassende Home Assistant Integration zur Verwaltung und Überwachung von Hundeaktivitäten wie Fütterung, Gassigehen und täglichen Routinen.
 
