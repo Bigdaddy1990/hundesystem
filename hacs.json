@@ -1,8 +1,10 @@
 {
   "name": "Hundesystem",
-  "content_in_root": false,
-  "filename": "hundesystem.zip",
-  "render_readme": true,
-  "zip_release": true,
-  "hide_default_branch": false
+  "domain": "hundesystem",
+  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
+  "codeowners": ["@Bigdaddy1990"],
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "render_readme": true
 }
