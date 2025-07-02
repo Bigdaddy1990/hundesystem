@@ -1,54 +1,212 @@
 # 🐶 Hundesystem – Home Assistant Integration
 
-![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)
-![HACS](https://img.shields.io/badge/hacs-compatible-green)
-![License](https://img.shields.io/github/license/Bigdaddy1990/hundesystem)
+Eine smarte Mehrhundeverwaltung mit Sensoren, Push-Logik, Dashboard und Besuchsmodus.
 
-Ein vollständiges, modulares Smart-Home-System zur **automatisierten Hunde-Betreuung** in Home Assistant.
+…
+
+
+
+\[!\[hacs\_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
+
+\[!\[GitHub release](https://img.shields.io/github/v/release/Bigdaddy1990/hundesystem?include\_prereleases)](https://github.com/Bigdaddy1990/hundesystem/releases)
+
+\[!\[License](https://img.shields.io/github/license/Bigdaddy1990/hundesystem)](LICENSE)
+
+
+
+> \*\*Eine intelligente Hundeverwaltung für Home Assistant – mit Dashboard, Push-Benachrichtigungen, Besuchsmodus und Mehrhundesupport.\*\*
+
+
 
 ---
 
-## 🔧 Funktionen
+
+
+\## ✨ Features
+
+
 
 | Kategorie             | Beschreibung |
+
 |----------------------|--------------|
-| 🍽️ Fütterung         | Erinnerungen für Frühstück, Mittag, Abend, Leckerli |
-| 🚪 Türsensor-Tracking | „Draußen“-Protokoll mit Rückfragen |
-| 📲 Push-Logik         | Nachricht an anwesende Person(en) oder manuelle Geräte |
-| 📅 Tagesstatistik     | Counter pro Aktion + automatischer Reset |
-| 🧍 Besucherhunde      | Optionaler Besuchsmodus & Statusanzeige |
-| 🧠 Adminpanel         | zentrale Übersicht, manuelle Steuerung, Push-Test |
-| 📊 Dashboard          | Mushroom-fähig, responsiv, Chip + Template-Karten |
-| 💬 Rückfragen         | „Hund schon gefüttert?“ via Notification |
-| 🔁 Flexibel           | beliebig viele Hunde, jede Funktion einzeln abschaltbar |
+
+| 🧠 \*\*Einfaches Setup\*\* | Integration über UI mit nur wenigen Klicks |
+
+| 🐕 \*\*Mehrhundesupport\*\* | Beliebig viele Hunde, individuell konfigurierbar |
+
+| 🍽️ \*\*Fütterungserinnerung\*\* | Automatische Push-Benachrichtigungen für Frühstück, Mittag, Abend, Snack |
+
+| 🚪 \*\*Aktivitäts-Tracking\*\* | Gartengang-Zähler, Besuchsmodus, täglicher Reset |
+
+| 📲 \*\*Benachrichtigungen\*\* | Push mit Rückfrage-Funktion an Geräte oder `person.\*` |
+
+| 📊 \*\*Dashboard inklusive\*\* | Mushroom-kompatibles YAML-Dashboard wird automatisch generiert |
+
+| 🧾 \*\*Services \& Automationen\*\* | Eigene Services für Erinnerungen, Resets, Benachrichtigungen |
+
+| 🧩 \*\*Modular \& flexibel\*\* | Alle Features einzeln deaktivierbar |
+
+
 
 ---
 
-## 🚀 Installation über HACS
 
-1. Öffne HACS → `Integrationen` → Drei-Punkte-Menü → `Benutzerdefiniertes Repository hinzufügen`  
-   → URL: `https://github.com/Bigdaddy1990/hundesystem`  
-   → Kategorie: `Integration`
 
-2. Nach Installation: Home Assistant neustarten.
+\## 📦 Installation über HACS
 
-3. Gehe zu `Einstellungen` → `Integrationen` → `+ Hinzufügen` → `Hundesystem`
 
-4. Folge dem Setup-Assistenten:
-   - Namen des Hundesystems (z. B. `Rex`)
-   - Push-Geräte auswählen oder `person.*` aktivieren
-   - Optional: Dashboard automatisch erstellen lassen
+
+> ⚠️ Du musst \[HACS](https://hacs.xyz) installiert haben.
+
+
+
+1\. Öffne Home Assistant → \*\*HACS\*\*
+
+2\. Gehe zu \*\*Integrationen\*\* → „Custom Repositories“
+
+3\. Gib folgende URL ein:
+
+
+
+https://github.com/Bigdaddy1990/hundesystem
+
+4\. Kategorie: \*\*Integration\*\*
+
+5\. Installiere die Integration
+
+6\. Home Assistant \*\*neu starten\*\*
+
+7\. Integration hinzufügen → „Hundesystem“
+
+
 
 ---
 
-## 🧩 Konfigurationsbeispiele
 
-```yaml
-lovelace:
-  dashboards:
-    hundesystem:
-      mode: yaml
-      title: Hundesystem
-      icon: mdi:dog-service
-      filename: dashboards/hundesystem/dashboard.yaml
-      show_in_sidebar: true
+
+\## 🧠 Konfiguration
+
+
+
+Nach dem Hinzufügen wirst du durch folgende Einstellungen geführt:
+
+
+
+\- 🐶 \*\*Name des Hundes\*\* (z. B. `rex`)
+
+\- 📲 \*\*Push-Geräte auswählen\*\* (`notify.\*`)
+
+\- 👤 \*\*Personen-Tracking aktivieren/deaktivieren\*\*
+
+\- 📊 \*\*Dashboard automatisch erstellen\*\*
+
+
+
+Es werden automatisch folgende Entitäten erzeugt:
+
+
+
+\- `input\_boolean.rex\_feeding\_morning`
+
+\- `counter.rex\_outside`
+
+\- `sensor.rex\_status`
+
+\- `binary\_sensor.rex\_needs\_attention`
+
+\- ...
+
+
+
+---
+
+
+
+\## 🛠️ Verfügbare Services
+
+
+
+| Service | Beschreibung |
+
+|--------|--------------|
+
+| `hundesystem.trigger\_feeding\_reminder` | Sendet Erinnerung an Fütterung |
+
+| `hundesystem.daily\_reset`              | Setzt Zähler \& Status zurück |
+
+| `hundesystem.send\_notification`        | Sendet beliebige Push-Nachricht |
+
+
+
+---
+
+
+
+\## 📸 Screenshots
+
+
+
+> \*(Optional – Du kannst Bilder in `docs/screenshots/` ablegen)\*
+
+
+
+| Übersicht | Statistik |
+
+|----------|-----------|
+
+| !\[](docs/screenshots/dashboard1.png) | !\[](docs/screenshots/stats1.png) |
+
+
+
+---
+
+
+
+\## 📚 Dokumentation
+
+
+
+\- 📥 \[Installation](docs/installation.md)
+
+\- ⚙️ \[Konfiguration](docs/configuration.md)
+
+\- ⚙️ \[Services](custom\_components/hundesystem/services.yaml)
+
+
+
+---
+
+
+
+\## 🧑‍💻 Entwickler \& Beiträge
+
+
+
+\- Quellcode: \[GitHub Repository](https://github.com/Bigdaddy1990/hundesystem)
+
+\- Fehler oder Vorschläge? → \[Issues](https://github.com/Bigdaddy1990/hundesystem/issues)
+
+\- Pull Requests sind willkommen! 🙌
+
+
+
+---
+
+
+
+\## 🛡️ Lizenz
+
+
+
+MIT License – \[siehe LICENSE](LICENSE)
+
+
+
+---
+
+
+
+\*\*Hundesystem\*\* ist deine smarte Erweiterung für tierisch gute Home Assistant Automationen. Viel Spaß! 🐾
+
+
+

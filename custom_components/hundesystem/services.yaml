@@ -1,0 +1,25 @@
+trigger_feeding_reminder:
+  name: Fütterungserinnerung senden
+  description: Sendet eine Push-Nachricht zur Erinnerung an eine Fütterung.
+  fields:
+    meal_type:
+      description: Art der Fütterung (z. B. "morning")
+      example: morning
+    message:
+      description: Optional benutzerdefinierte Nachricht
+      example: Zeit fürs Frühstück!
+
+daily_reset:
+  name: Täglicher Reset
+  description: Setzt alle Fütterungs- und Aktivitätsdaten zurück.
+
+send_notification:
+  name: Benutzerdefinierte Nachricht senden
+  description: Sendet eine Push-Nachricht an konfigurierte Geräte.
+  fields:
+    title:
+      description: Titel der Nachricht
+      example: Erinnerung
+    message:
+      description: Nachrichtentext
+      example: Hast du Rex schon gefüttert?
