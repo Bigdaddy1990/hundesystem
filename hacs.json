@@ -1,11 +1,17 @@
 {
   "name": "Hundesystem",
   "content_in_root": false,
-  "domains": ["hundesystem"],
-  "country": ["DE"],
-  "homeassistant": "2023.0.0",
-  "iot_class": "local_push",
   "render_readme": true,
+  "domains": [
+    "binary_sensor",
+    "sensor", 
+    "input_boolean",
+    "counter",
+    "input_datetime",
+    "input_text"
+  ],
+  "iot_class": "Local Polling",
+  "homeassistant": "2023.1.0",
   "zip_release": true,
-  "filename": "hundesystem.zip"
+  "hide_default_branch": false
 }
