@@ -1,10 +1,9 @@
-# 🐾 Hundesystem v1.0.1
+# 🐾 Hundesystem v1.0.2
 
-Erste stabile Version mit:
+🔧 Patch-Release – Wiederherstellung und Verbesserungen:
 
-- Automatischer Helper-Erstellung
-- Dashboard pro Hund (inkl. Besuchshund-Modus)
-- Tages- und Wochenstatistiken
-- Rückfragen per Push
-- Actionable Notifications (Push-Antworten)
-- Mushroom-UI und Timeline-Unterstützung
+- ✅ Ursprünglicher `dashboard.py`-Code vollständig wiederhergestellt
+- ➕ Mushroom UI-Karten, Besuchshund-Modus, Timeline, Statistik integriert
+- 🧠 `__init__.py` repariert und um neue Services ergänzt (ohne Überschreiben)
+- 📊 Neues `sensor.py` für dynamische Erweiterung vorbereitet
+- 🚀 Bereit für HACS & GitHub Release

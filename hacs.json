@@ -8,7 +8,7 @@
   "country": "DE",
   "iot_class": "Local Push",
   "homeassistant": "2023.5.0",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "hide_default_branch": false,
   "category": "integration"
 }
