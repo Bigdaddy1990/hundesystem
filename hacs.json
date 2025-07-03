@@ -1,13 +1,25 @@
 {
+  "domain": "hundesystem",
   "name": "Hundesystem",
-  "content_in_root": false,
-  "render_readme": true,
-  "zip_release": false,
-  "domains": ["binary_sensor", "sensor", "input_boolean", "counter", "input_datetime", "input_text", "button"],
-  "country": "DE",
-  "iot_class": "Local Push",
-  "homeassistant": "2023.5.0",
-  "version": "1.0.3",
-  "hide_default_branch": false,
-  "category": "integration"
+  "version": "2.0.1",
+  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
+  "issue_tracker": "https://github.com/Bigdaddy1990/hundesystem/issues",
+  "dependencies": [],
+  "codeowners": ["@Bigdaddy1990"],
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "service",
+  "after_dependencies": [
+    "input_boolean",
+    "counter",
+    "input_datetime", 
+    "input_text",
+    "input_number",
+    "input_select",
+    "notify",
+    "person"
+  ],
+  "quality_scale": "silver",
+  "homeassistant": "2024.1.0"
 }
