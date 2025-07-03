@@ -325,6 +325,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         services = []
         
         try:
+            # Safety check for hass availability
+            if not self.hass:
+                _LOGGER.warning("HomeAssistant instance not available, returning default services")
+                return [{"value": "persistent_notification", "label": "Persistent Notification"}]
+            
             # Get all notify services
             notify_services = self.hass.services.async_services().get("notify", {})
             
@@ -371,6 +376,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         sensors = []
         
         try:
+            # Safety check for hass availability
+            if not self.hass:
+                return []
+                
             for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
                 state = self.hass.states.get(entity_id)
                 if state:
@@ -427,13 +436,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_config = self.config_entry.data
         dog_name = current_config.get(CONF_DOG_NAME, "")
 
+        # Get available notify services safely
+        try:
+            notify_services = await self._get_notify_services()
+        except Exception:
+            notify_services = [{"value": "persistent_notification", "label": "Persistent Notification"}]
+
         data_schema = vol.Schema({
             vol.Optional(
                 CONF_PUSH_DEVICES,
                 default=current_config.get(CONF_PUSH_DEVICES, [])
             ): selector({
                 "select": {
-                    "options": await self._get_notify_services(),
+                    "options": notify_services,
                     "multiple": True,
                     "mode": "dropdown"
                 }
@@ -474,10 +489,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _get_notify_services(self) -> list[dict[str, str]]:
         """Get available notify services for options."""
-        # Reuse the same method from ConfigFlow
-        config_flow = ConfigFlow()
-        config_flow.hass = self.hass
-        return await config_flow._get_notify_services()
+        services = []
+        
+        try:
+            if not self.hass:
+                return [{"value": "persistent_notification", "label": "Persistent Notification"}]
+                
+            notify_services = self.hass.services.async_services().get("notify", {})
+            
+            for service_name in notify_services.keys():
+                if service_name != "notify":
+                    label = service_name.replace("_", " ").title()
+                    if service_name.startswith("mobile_app_"):
+                        person_name = service_name.replace("mobile_app_", "").title()
+                        label = f"Mobile App - {person_name}"
+                    
+                    services.append({
+                        "value": service_name,
+                        "label": label
+                    })
+        except Exception as err:
+            _LOGGER.warning("Could not get notify services in options: %s", err)
+            services = [{"value": "persistent_notification", "label": "Persistent Notification"}]
+        
+        return sorted(services, key=lambda x: x["label"])
 
 
 class CannotConnect(HomeAssistantError):
