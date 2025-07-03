@@ -2,6 +2,7 @@
 import logging
 import os
 from typing import Any, Dict
+from functools import partial
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_DOG_NAME, MEAL_TYPES, ACTIVITY_TYPES
@@ -29,22 +30,7 @@ async def async_create_dashboard(hass: HomeAssistant, dog_name: str, config: Dic
     except Exception as e:
         _LOGGER.error("Failed to create dashboards for %s: %s", dog_name, e)
         raise
-        main_dashboard = await _generate_main_dashboard(dog_name, config)
-        await _save_dashboard(hass, f"hundesystem_{dog_name}", main_dashboard)
-        
-        # Create mobile dashboard (simplified)
-        mobile_dashboard = await _generate_mobile_dashboard(dog_name, config)
-        await _save_dashboard(hass, f"hundesystem_{dog_name}_mobile", mobile_dashboard)
-        
-        # Create admin dashboard
-        admin_dashboard = await _generate_admin_dashboard(dog_name, config)
-        await _save_dashboard(hass, f"hundesystem_{dog_name}_admin", admin_dashboard)
-        
-        _LOGGER.info("All dashboards created successfully for %s", dog_name)
-        
-    except Exception as e:
-        _LOGGER.error("Failed to create dashboards for %s: %s", dog_name, e)
-        raise
+
 
 async def _generate_main_dashboard(dog_name: str, config: Dict[str, Any]) -> str:
     """Generate the main comprehensive dashboard."""
@@ -638,7 +624,7 @@ views:
           - entity: input_boolean.{dog_name}_weather_alerts
             name: "Wetter-Warnungen"
 
-      # Services zum Testen
+      # Service Tests
       - type: custom:mushroom-title-card
         title: "🧪 Service Tests"
 
@@ -804,7 +790,6 @@ views:
           - input_boolean.{dog_name}_feeding_evening
           - input_boolean.{dog_name}_feeding_snack
           - input_boolean.{dog_name}_outside
-          - input_boolean.{dog_name}_was_dog
           - input_boolean.{dog_name}_poop_done
           - input_boolean.{dog_name}_visitor_mode_input
           - input_boolean.{dog_name}_emergency_mode
@@ -851,7 +836,6 @@ views:
 
 async def _save_dashboard(hass: HomeAssistant, filename: str, content: str) -> None:
     """Save dashboard to file."""
-    dashboard_path = hass.config.path("dashboards")
     
     def _write_dashboard_file(path: str, content: str) -> None:
         """Write dashboard file synchronously."""
@@ -860,6 +844,7 @@ async def _save_dashboard(hass: HomeAssistant, filename: str, content: str) -> N
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
     
+    dashboard_path = hass.config.path("dashboards")
     dashboard_file = os.path.join(dashboard_path, f"{filename}.yaml")
     
     try:
