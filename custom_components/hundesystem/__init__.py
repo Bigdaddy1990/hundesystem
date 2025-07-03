@@ -194,7 +194,7 @@ async def _register_services(hass: HomeAssistant) -> None:
     async def daily_reset(call: ServiceCall) -> None:
         """Handle daily reset service call."""
         dog_name = call.data.get("dog_name")
-        
+
         # Get target entries
         target_entries = []
         if dog_name:
@@ -254,7 +254,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                         blocking=True
                     )
                 
-                _LOGGER.info("Daily reset completed for %s", dog)
+                _LOGGER.info("Daily reset completed successfully for %s", dog_name or "all dogs")
                 
                 # Send confirmation
                 await _send_notification(
@@ -264,7 +264,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                 )
                 
             except Exception as err:
-                _LOGGER.error("Error during daily reset for %s: %s", dog, err)
+                _LOGGER.error("Daily reset failed for %s: %s", dog_name or "all dogs", err)
                 raise ServiceValidationError(f"Daily reset failed for {dog}: {err}")
     
     async def send_notification(call: ServiceCall) -> None:
