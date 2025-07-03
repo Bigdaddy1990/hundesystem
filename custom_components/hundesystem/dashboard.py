@@ -13,12 +13,6 @@ async def async_create_dashboard(hass: HomeAssistant, dog_name: str, config: Dic
     """Create a comprehensive dashboard for the dog system."""
     
     try:
-    from functools import partial
-    def _write_dashboard_file(path, content):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-    await hass.async_add_executor_job(partial(_write_dashboard_file, dashboard_file, content))
         main_dashboard = await _generate_main_dashboard(dog_name, config)
         await _save_dashboard(hass, f"hundesystem_{dog_name}", main_dashboard)
         
@@ -35,7 +29,22 @@ async def async_create_dashboard(hass: HomeAssistant, dog_name: str, config: Dic
     except Exception as e:
         _LOGGER.error("Failed to create dashboards for %s: %s", dog_name, e)
         raise
-
+        main_dashboard = await _generate_main_dashboard(dog_name, config)
+        await _save_dashboard(hass, f"hundesystem_{dog_name}", main_dashboard)
+        
+        # Create mobile dashboard (simplified)
+        mobile_dashboard = await _generate_mobile_dashboard(dog_name, config)
+        await _save_dashboard(hass, f"hundesystem_{dog_name}_mobile", mobile_dashboard)
+        
+        # Create admin dashboard
+        admin_dashboard = await _generate_admin_dashboard(dog_name, config)
+        await _save_dashboard(hass, f"hundesystem_{dog_name}_admin", admin_dashboard)
+        
+        _LOGGER.info("All dashboards created successfully for %s", dog_name)
+        
+    except Exception as e:
+        _LOGGER.error("Failed to create dashboards for %s: %s", dog_name, e)
+        raise
 
 async def _generate_main_dashboard(dog_name: str, config: Dict[str, Any]) -> str:
     """Generate the main comprehensive dashboard."""
