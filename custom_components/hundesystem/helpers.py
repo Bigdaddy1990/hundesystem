@@ -15,34 +15,41 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
-async def async_create_helpers(hass: HomeAssistant, dog_name: str, config: dict) -> None:
-    """Create all helper entities for the dog system."""
-    try:
-        # Create input_boolean entities
-        await _create_input_booleans(hass, dog_name)
+async def _create_input_booleans(hass: HomeAssistant, dog_name: str) -> None:
+    """Create input_boolean entities."""
+    
+    boolean_entities = [
+        # Feeding booleans
+        (f"{dog_name}_feeding_morning", "Frühstück", ICONS["morning"]),
+        (f"{dog_name}_feeding_lunch", "Mittagessen", ICONS["lunch"]),
+        (f"{dog_name}_feeding_evening", "Abendessen", ICONS["evening"]),
+        (f"{dog_name}_feeding_snack", "Leckerli", ICONS["snack"]),
         
-        # Create counter entities  
-        await _create_counters(hass, dog_name)
+        # Activity booleans
+        (f"{dog_name}_outside", "War draußen", ICONS["outside"]),
+        (f"{dog_name}_poop_done", "Geschäft gemacht", ICONS["poop"]),
         
-        # Create input_datetime entities
-        await _create_input_datetimes(hass, dog_name)
-        
-        # Create input_text entities
-        await _create_input_texts(hass, dog_name)
-        
-        # Create input_number entities
-        await _create_input_numbers(hass, dog_name)
-        
-        # Create input_select entities
-        await _create_input_selects(hass, dog_name)
-        
-        _LOGGER.info("All helper entities created successfully for %s", dog_name)
-        
-    except Exception as e:
-        _LOGGER.error("Error creating helper entities for %s: %s", dog_name, e)
-        raise
-
+        # Status booleans
+        (f"{dog_name}_visitor_mode_input", "Besuchsmodus", ICONS["visitor"]),
+        (f"{dog_name}_emergency_mode", "Notfallmodus", ICONS["emergency"]),
+        (f"{dog_name}_medication_given", "Medikament gegeben", ICONS["medication"]),
+    ]
+    
+    for entity_name, friendly_name, icon in boolean_entities:
+        try:
+            # Check if entity already exists
+            if hass.states.get(f"input_boolean.{entity_name}") is None:
+                await hass.services.async_call(
+                    "input_boolean", "create",
+                    {
+                        "name": f"{dog_name.title()} {friendly_name}",
+                        "icon": icon,
+                    },
+                    blocking=True
+                )
+                _LOGGER.debug("Created input_boolean: input_boolean.%s", entity_name)
+        except Exception as e:
+            _LOGGER.warning("Failed to create input_boolean %s: %s", entity_name, e)
 
 async def _create_input_booleans(hass: HomeAssistant, entity_registry, dog_name: str) -> None:
     """Create input_boolean entities."""
