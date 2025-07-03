@@ -18,26 +18,24 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_create_helpers(hass: HomeAssistant, dog_name: str, config: dict) -> None:
     """Create all helper entities for the dog system."""
-    entity_registry = er.async_get(hass)
-    
     try:
         # Create input_boolean entities
-        await _create_input_booleans(hass, entity_registry, dog_name)
+        await _create_input_booleans(hass, dog_name)
         
-        # Create counter entities
-        await _create_counters(hass, entity_registry, dog_name)
+        # Create counter entities  
+        await _create_counters(hass, dog_name)
         
         # Create input_datetime entities
-        await _create_input_datetimes(hass, entity_registry, dog_name)
+        await _create_input_datetimes(hass, dog_name)
         
         # Create input_text entities
-        await _create_input_texts(hass, entity_registry, dog_name)
+        await _create_input_texts(hass, dog_name)
         
-        # Create input_number entities (for health tracking)
-        await _create_input_numbers(hass, entity_registry, dog_name)
+        # Create input_number entities
+        await _create_input_numbers(hass, dog_name)
         
         # Create input_select entities
-        await _create_input_selects(hass, entity_registry, dog_name)
+        await _create_input_selects(hass, dog_name)
         
         _LOGGER.info("All helper entities created successfully for %s", dog_name)
         
