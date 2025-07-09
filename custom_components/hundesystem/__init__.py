@@ -621,7 +621,7 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door
                         data=notification_data
                     )
     
-async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door_sensor: str) -> None:
+async def _setup_door_sensor_automation(hass: HomeAssistant, [door_sensor: str], door_sensor_callback, dog_name: str) -> None:
     """Setup door sensor automation for a dog."""
     
     async def door_sensor_callback(event):
