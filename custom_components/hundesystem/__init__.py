@@ -629,6 +629,7 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, [door_sensor: str],
         # Get the new and old states from the event
         new_state = event.data.get("new_state")
         old_state = event.data.get("old_state")
+        entity_id = event.data.get("entity_id")
         
         if (new_state and new_state.state == "off" and 
             old_state and old_state.state == "on"):
@@ -683,12 +684,11 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, [door_sensor: str],
                         data=notification_data
                     )
     
-    # KORRIGIERT: Verwende async_track_state_change_event anstatt async_track_state_change
+    # KORRIGIERT: Verwende async_track_state_change_event
     from homeassistant.helpers.event import async_track_state_change_event
     async_track_state_change_event(hass, [door_sensor], door_sensor_callback)
     
     _LOGGER.info("Door sensor automation set up for %s with sensor %s", dog_name, door_sensor)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Hundesystem from a config entry."""
