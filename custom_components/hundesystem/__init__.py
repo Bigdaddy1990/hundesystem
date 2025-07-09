@@ -688,3 +688,93 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door
     async_track_state_change_event(hass, [door_sensor], door_sensor_callback)
     
     _LOGGER.info("Door sensor automation set up for %s with sensor %s", dog_name, door_sensor)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up Hundesystem from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+    
+    dog_name = entry.data[CONF_DOG_NAME]
+    _LOGGER.info("=== HUNDESYSTEM SETUP START für %s ===", dog_name)
+    
+    # Store config data
+    hass.data[DOMAIN][entry.entry_id] = {
+        "config": entry.data,
+        "dog_name": dog_name,
+        "store": Store(hass, 1, f"{DOMAIN}_{dog_name}")
+    }
+    
+    try:
+        # Step 1: Create helper entities first
+        _LOGGER.info("Step 1: Creating helper entities for %s", dog_name)
+        await async_create_helpers(hass, dog_name, entry.data)
+        _LOGGER.info("Helper entities created successfully for %s", dog_name)
+        
+        # Step 2: Wait for entities to be ready
+        _LOGGER.info("Step 2: Waiting for entities to be ready...")
+        await asyncio.sleep(2)
+        
+        # Step 3: Set up platforms
+        _LOGGER.info("Step 3: Setting up platforms for %s", dog_name)
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        _LOGGER.info("Platforms set up successfully for %s", dog_name)
+        
+        # Step 4: Create dashboard if requested
+        if entry.data.get(CONF_CREATE_DASHBOARD, True):
+            _LOGGER.info("Step 4: Creating dashboard for %s", dog_name)
+            await async_create_dashboard(hass, dog_name, entry.data)
+        
+        # Step 5: Register services (only once)
+        if len(hass.data[DOMAIN]) == 1:
+            _LOGGER.info("Step 5: Registering services")
+            await _register_services(hass)
+        
+        # Step 6: Setup automations
+        _LOGGER.info("Step 6: Setting up automations for %s", dog_name)
+        await _setup_daily_reset(hass, dog_name)
+        
+        door_sensor = entry.data.get(CONF_DOOR_SENSOR)
+        if door_sensor:
+            await _setup_door_sensor_automation(hass, dog_name, door_sensor)
+        
+        # Step 7: Verify setup
+        _LOGGER.info("Step 7: Verifying setup for %s", dog_name)
+        await _verify_setup(hass, dog_name)
+        
+        _LOGGER.info("=== HUNDESYSTEM SETUP COMPLETE für %s ===", dog_name)
+        return True
+        
+    except Exception as e:
+        _LOGGER.error("=== HUNDESYSTEM SETUP FAILED für %s: %s ===", dog_name, e, exc_info=True)
+        return False
+
+
+async def _verify_setup(hass: HomeAssistant, dog_name: str) -> None:
+    """Verify that setup was successful."""
+    
+    # Check some key entities
+    key_entities = [
+        f"input_boolean.{dog_name}_feeding_morning",
+        f"counter.{dog_name}_outside_count",
+        f"sensor.{dog_name}_status",
+    ]
+    
+    missing_entities = []
+    for entity_id in key_entities:
+        if not hass.states.get(entity_id):
+            missing_entities.append(entity_id)
+    
+    if missing_entities:
+        _LOGGER.warning("Missing entities for %s: %s", dog_name, missing_entities)
+    else:
+        _LOGGER.info("All key entities created successfully for %s", dog_name)
+        
+    # Send test notification
+    await hass.services.async_call(
+        "persistent_notification", "create",
+        {
+            "title": f"🐶 Hundesystem für {dog_name.title()}",
+            "message": f"Setup erfolgreich! Entitäten: {len(key_entities) - len(missing_entities)}/{len(key_entities)}",
+            "notification_id": f"hundesystem_setup_{dog_name}"
+        }
+    )
