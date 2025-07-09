@@ -92,6 +92,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     
     dog_name = entry.data[CONF_DOG_NAME]
+    _LOGGER.info("=== HUNDESYSTEM SETUP START für %s ===", dog_name)
     
     # Store config data
     hass.data[DOMAIN][entry.entry_id] = {
@@ -100,30 +101,288 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "store": Store(hass, 1, f"{DOMAIN}_{dog_name}")
     }
     
-    # Set up platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        # Step 1: Create helper entities first
+        _LOGGER.info("Step 1: Creating helper entities for %s", dog_name)
+        await async_create_helpers_robust(hass, dog_name, entry.data)
+        _LOGGER.info("Helper entities created successfully for %s", dog_name)
+        
+        # Step 2: Wait for entities to be ready
+        _LOGGER.info("Step 2: Waiting for entities to be ready...")
+        await asyncio.sleep(3)
+        
+        # Step 3: Set up platforms
+        _LOGGER.info("Step 3: Setting up platforms for %s", dog_name)
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        _LOGGER.info("Platforms set up successfully for %s", dog_name)
+        
+        # Step 4: Create dashboard if requested
+        if entry.data.get(CONF_CREATE_DASHBOARD, True):
+            _LOGGER.info("Step 4: Creating dashboard for %s", dog_name)
+            try:
+                await async_create_dashboard(hass, dog_name, entry.data)
+            except Exception as e:
+                _LOGGER.warning("Dashboard creation failed for %s: %s", dog_name, e)
+        
+        # Step 5: Register services (only once)
+        if len(hass.data[DOMAIN]) == 1:
+            _LOGGER.info("Step 5: Registering services")
+            await _register_services(hass)
+        
+        # Step 6: Setup automations
+        _LOGGER.info("Step 6: Setting up automations for %s", dog_name)
+        await _setup_daily_reset(hass, dog_name)
+        
+        door_sensor = entry.data.get(CONF_DOOR_SENSOR)
+        if door_sensor:
+            await _setup_door_sensor_automation(hass, dog_name, door_sensor)
+        
+        # Step 7: Verify setup
+        _LOGGER.info("Step 7: Verifying setup for %s", dog_name)
+        await _verify_setup(hass, dog_name)
+        
+        _LOGGER.info("=== HUNDESYSTEM SETUP COMPLETE für %s ===", dog_name)
+        return True
+        
+    except Exception as e:
+        _LOGGER.error("=== HUNDESYSTEM SETUP FAILED für %s: %s ===", dog_name, e, exc_info=True)
+        return False
+
+
+async def async_create_helpers_robust(hass: HomeAssistant, dog_name: str, config: dict) -> None:
+    """Create helper entities with robust error handling."""
     
-    # Create helper entities
-    await async_create_helpers(hass, dog_name, entry.data)
+    helper_data = {
+        # Input Booleans
+        "input_boolean": [
+            (f"{dog_name}_feeding_morning", "Frühstück", "mdi:weather-sunrise"),
+            (f"{dog_name}_feeding_lunch", "Mittagessen", "mdi:weather-sunny"),
+            (f"{dog_name}_feeding_evening", "Abendessen", "mdi:weather-sunset"),
+            (f"{dog_name}_feeding_snack", "Leckerli", "mdi:food-croissant"),
+            (f"{dog_name}_outside", "War draußen", "mdi:door-open"),
+            (f"{dog_name}_poop_done", "Geschäft gemacht", "mdi:emoticon-poop"),
+            (f"{dog_name}_visitor_mode_input", "Besuchsmodus", "mdi:account-group"),
+            (f"{dog_name}_emergency_mode", "Notfallmodus", "mdi:alarm-light"),
+            (f"{dog_name}_medication_given", "Medikament gegeben", "mdi:pill"),
+            (f"{dog_name}_auto_reminders", "Automatische Erinnerungen", "mdi:bell-ring"),
+            (f"{dog_name}_tracking_enabled", "Tracking aktiviert", "mdi:chart-line"),
+            (f"{dog_name}_weather_alerts", "Wetter-Warnungen", "mdi:weather-partly-cloudy"),
+        ],
+        # Counter
+        "counter": [
+            (f"{dog_name}_feeding_morning_count", "Frühstück Zähler", "mdi:weather-sunrise"),
+            (f"{dog_name}_feeding_lunch_count", "Mittagessen Zähler", "mdi:weather-sunny"),
+            (f"{dog_name}_feeding_evening_count", "Abendessen Zähler", "mdi:weather-sunset"),
+            (f"{dog_name}_feeding_snack_count", "Leckerli Zähler", "mdi:food-croissant"),
+            (f"{dog_name}_outside_count", "Draußen Zähler", "mdi:door-open"),
+            (f"{dog_name}_walk_count", "Gassi Zähler", "mdi:walk"),
+            (f"{dog_name}_play_count", "Spiel Zähler", "mdi:tennis-ball"),
+            (f"{dog_name}_training_count", "Training Zähler", "mdi:school"),
+            (f"{dog_name}_poop_count", "Geschäft Zähler", "mdi:emoticon-poop"),
+            (f"{dog_name}_activity_count", "Aktivitäten gesamt", "mdi:chart-line"),
+        ],
+        # Input DateTime
+        "input_datetime": [
+            (f"{dog_name}_feeding_morning_time", "Frühstück Zeit", True, False, "07:00:00", "mdi:weather-sunrise"),
+            (f"{dog_name}_feeding_lunch_time", "Mittagessen Zeit", True, False, "12:00:00", "mdi:weather-sunny"),
+            (f"{dog_name}_feeding_evening_time", "Abendessen Zeit", True, False, "18:00:00", "mdi:weather-sunset"),
+            (f"{dog_name}_feeding_snack_time", "Leckerli Zeit", True, False, "15:00:00", "mdi:food-croissant"),
+            (f"{dog_name}_last_outside", "Letzter Gartengang", True, True, None, "mdi:door-open"),
+            (f"{dog_name}_last_feeding_morning", "Letztes Frühstück", True, True, None, "mdi:weather-sunrise"),
+            (f"{dog_name}_last_feeding_lunch", "Letztes Mittagessen", True, True, None, "mdi:weather-sunny"),
+            (f"{dog_name}_last_feeding_evening", "Letztes Abendessen", True, True, None, "mdi:weather-sunset"),
+            (f"{dog_name}_last_feeding_snack", "Letztes Leckerli", True, True, None, "mdi:food-croissant"),
+            (f"{dog_name}_last_activity", "Letzte Aktivität", True, True, None, "mdi:chart-line"),
+            (f"{dog_name}_last_door_ask", "Letzte Türfrage", True, True, None, "mdi:door"),
+            (f"{dog_name}_next_vet_appointment", "Nächster Tierarzttermin", True, True, None, "mdi:medical-bag"),
+            (f"{dog_name}_medication_time", "Medikamentenzeit", True, False, "08:00:00", "mdi:pill"),
+        ],
+        # Input Text
+        "input_text": [
+            (f"{dog_name}_notes", "Notizen", 255, "mdi:note-text"),
+            (f"{dog_name}_visitor_name", "Besuchername", 100, "mdi:account-group"),
+            (f"{dog_name}_health_notes", "Gesundheitsnotizen", 255, "mdi:heart-pulse"),
+            (f"{dog_name}_emergency_contact", "Notfallkontakt", 200, "mdi:phone-alert"),
+            (f"{dog_name}_vet_contact", "Tierarzt Kontakt", 200, "mdi:medical-bag"),
+            (f"{dog_name}_last_activity_notes", "Letzte Aktivität Notizen", 255, "mdi:note-text"),
+            (f"{dog_name}_medication_notes", "Medikamenten Notizen", 255, "mdi:pill"),
+        ],
+        # Input Number
+        "input_number": [
+            (f"{dog_name}_weight", "Gewicht", 0.1, 0, 100, 10, "kg", "mdi:weight-kilogram"),
+            (f"{dog_name}_health_score", "Gesundheits Score", 1, 0, 10, 8, "points", "mdi:heart-pulse"),
+            (f"{dog_name}_temperature", "Körpertemperatur", 0.1, 35, 42, 38.5, "°C", "mdi:thermometer"),
+            (f"{dog_name}_energy_level", "Energie Level", 1, 0, 10, 7, "points", "mdi:flash"),
+        ],
+        # Input Select
+        "input_select": [
+            (f"{dog_name}_health_status", "Gesundheitsstatus", 
+             ["Ausgezeichnet", "Gut", "Normal", "Schwach", "Krank", "Notfall"], 
+             "Gut", "mdi:heart-pulse"),
+            (f"{dog_name}_mood", "Stimmung", 
+             ["Sehr glücklich", "Glücklich", "Neutral", "Gestresst", "Ängstlich", "Krank"], 
+             "Glücklich", "mdi:emoticon-happy"),
+            (f"{dog_name}_energy_level_category", "Energie Level", 
+             ["Sehr müde", "Müde", "Normal", "Energiegeladen", "Hyperaktiv"], 
+             "Normal", "mdi:flash"),
+            (f"{dog_name}_appetite_level", "Appetit Level", 
+             ["Kein Appetit", "Wenig Appetit", "Normal", "Guter Appetit", "Sehr hungrig"], 
+             "Normal", "mdi:food-variant"),
+        ],
+    }
     
-    # Create dashboard if requested
-    if entry.data.get(CONF_CREATE_DASHBOARD, True):
-        await async_create_dashboard(hass, dog_name, entry.data)
+    for domain, entities in helper_data.items():
+        await _create_helpers_for_domain(hass, domain, entities, dog_name)
+
+
+async def _create_helpers_for_domain(hass: HomeAssistant, domain: str, entities: list, dog_name: str) -> None:
+    """Create helpers for a specific domain."""
     
-    # Register services (only once, not per dog)
-    if len(hass.data[DOMAIN]) == 1:
-        await _register_services(hass)
+    created_count = 0
+    skipped_count = 0
+    failed_count = 0
     
-    # Setup daily reset automation
-    await _setup_daily_reset(hass, dog_name)
+    for entity_data in entities:
+        entity_name = entity_data[0]
+        friendly_name = entity_data[1]
+        entity_id = f"{domain}.{entity_name}"
+        
+        # Skip if already exists
+        if hass.states.get(entity_id):
+            _LOGGER.debug("Entity %s already exists, skipping", entity_id)
+            skipped_count += 1
+            continue
+        
+        try:
+            service_data = {
+                "name": f"{dog_name.title()} {friendly_name}",
+            }
+            
+            # Domain-specific parameters
+            if domain == "input_boolean":
+                icon = entity_data[2] if len(entity_data) > 2 else "mdi:dog"
+                service_data["icon"] = icon
+                
+            elif domain == "counter":
+                icon = entity_data[2] if len(entity_data) > 2 else "mdi:counter"
+                service_data.update({
+                    "initial": 0,
+                    "step": 1,
+                    "minimum": 0,
+                    "icon": icon
+                })
+                
+            elif domain == "input_datetime":
+                has_time, has_date, initial = entity_data[2], entity_data[3], entity_data[4]
+                icon = entity_data[5] if len(entity_data) > 5 else "mdi:calendar-clock"
+                service_data.update({
+                    "has_time": has_time,
+                    "has_date": has_date,
+                    "icon": icon
+                })
+                if initial:
+                    service_data["initial"] = initial
+                    
+            elif domain == "input_text":
+                max_length = entity_data[2]
+                icon = entity_data[3] if len(entity_data) > 3 else "mdi:text"
+                service_data.update({
+                    "max": max_length,
+                    "initial": "",
+                    "icon": icon
+                })
+                
+            elif domain == "input_number":
+                step, min_val, max_val, initial, unit = entity_data[2:7]
+                icon = entity_data[7] if len(entity_data) > 7 else "mdi:numeric"
+                service_data.update({
+                    "min": min_val,
+                    "max": max_val,
+                    "step": step,
+                    "initial": initial,
+                    "unit_of_measurement": unit,
+                    "icon": icon
+                })
+                
+            elif domain == "input_select":
+                options, initial = entity_data[2], entity_data[3]
+                icon = entity_data[4] if len(entity_data) > 4 else "mdi:format-list-bulleted"
+                service_data.update({
+                    "options": options,
+                    "initial": initial,
+                    "icon": icon
+                })
+            
+            # Service call with timeout
+            await asyncio.wait_for(
+                hass.services.async_call(domain, "create", service_data, blocking=True),
+                timeout=15.0
+            )
+            
+            _LOGGER.debug("Created %s: %s", domain, entity_id)
+            created_count += 1
+            await asyncio.sleep(0.2)  # Small delay between creations
+            
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Timeout creating %s: %s", domain, entity_id)
+            failed_count += 1
+        except Exception as e:
+            _LOGGER.warning("Failed to create %s %s: %s", domain, entity_id, e)
+            failed_count += 1
     
-    # Setup door sensor automation if configured
-    door_sensor = entry.data.get(CONF_DOOR_SENSOR)
-    if door_sensor:
-        await _setup_door_sensor_automation(hass, dog_name, door_sensor)
+    _LOGGER.info("Domain %s for %s: %d created, %d skipped, %d failed", 
+                 domain, dog_name, created_count, skipped_count, failed_count)
+
+
+async def _verify_setup(hass: HomeAssistant, dog_name: str) -> None:
+    """Verify that setup was successful."""
     
-    _LOGGER.info("Hundesystem successfully set up for: %s", dog_name)
-    return True
+    # Check some key entities
+    key_entities = [
+        f"input_boolean.{dog_name}_feeding_morning",
+        f"input_boolean.{dog_name}_outside",
+        f"counter.{dog_name}_outside_count",
+        f"input_text.{dog_name}_notes",
+    ]
+    
+    existing_entities = []
+    missing_entities = []
+    
+    for entity_id in key_entities:
+        if hass.states.get(entity_id):
+            existing_entities.append(entity_id)
+        else:
+            missing_entities.append(entity_id)
+    
+    _LOGGER.info("Setup verification for %s: %d/%d entities exist", 
+                 dog_name, len(existing_entities), len(key_entities))
+    
+    if missing_entities:
+        _LOGGER.warning("Missing entities for %s: %s", dog_name, missing_entities)
+    
+    # Send setup notification
+    status = "✅ Erfolgreich" if not missing_entities else "⚠️ Teilweise"
+    await hass.services.async_call(
+        "persistent_notification", "create",
+        {
+            "title": f"🐶 Hundesystem für {dog_name.title()}",
+            "message": f"""
+Setup {status} abgeschlossen!
+
+**Erstellte Entitäten:** {len(existing_entities)}/{len(key_entities)}
+
+**Verfügbare Services:**
+- hundesystem.trigger_feeding_reminder
+- hundesystem.daily_reset  
+- hundesystem.test_notification
+
+**Nächste Schritte:**
+Gehen Sie zu Einstellungen > Geräte & Dienste > Hundesystem um alle Entitäten zu sehen.
+            """,
+            "notification_id": f"hundesystem_setup_{dog_name}"
+        },
+        blocking=False
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -194,7 +453,7 @@ async def _register_services(hass: HomeAssistant) -> None:
     async def daily_reset(call: ServiceCall) -> None:
         """Handle daily reset service call."""
         dog_name = call.data.get("dog_name")
-
+        
         # Get target entries
         target_entries = []
         if dog_name:
@@ -223,6 +482,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                 # Reset activity booleans
                 activity_entities = [
                     f"input_boolean.{dog}_outside",
+                    f"input_boolean.{dog}_poop_done",
                     f"input_boolean.{dog}_visitor_mode_input"
                 ]
                 
@@ -235,7 +495,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                         )
                 
                 # Reset counters
-                counter_types = FEEDING_TYPES + ["outside", "activity"]
+                counter_types = FEEDING_TYPES + ["outside", "walk", "play", "training", "poop", "activity"]
                 for counter_type in counter_types:
                     entity_id = f"counter.{dog}_{counter_type}_count"
                     if hass.states.get(entity_id):
@@ -254,7 +514,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                         blocking=True
                     )
                 
-                _LOGGER.info("Daily reset completed successfully for %s", dog_name or "all dogs")
+                _LOGGER.info("Daily reset completed for %s", dog)
                 
                 # Send confirmation
                 await _send_notification(
@@ -264,8 +524,7 @@ async def _register_services(hass: HomeAssistant) -> None:
                 )
                 
             except Exception as err:
-                _LOGGER.error("Daily reset failed for %s: %s", dog_name or "all dogs", err)
-                raise ServiceValidationError(f"Daily reset failed for {dog}: {err}")
+                _LOGGER.error("Error during daily reset for %s: %s", dog, err)
     
     async def send_notification(call: ServiceCall) -> None:
         """Handle send notification service call."""
@@ -343,11 +602,20 @@ async def _register_services(hass: HomeAssistant) -> None:
         
         for dog in target_dogs:
             # Increment activity counter
-            counter_entity = f"counter.{dog}_activity_count"
+            counter_entity = f"counter.{dog}_{activity_type}_count"
             if hass.states.get(counter_entity):
                 await hass.services.async_call(
                     "counter", "increment",
                     {"entity_id": counter_entity},
+                    blocking=True
+                )
+            
+            # Increment general activity counter
+            general_counter = f"counter.{dog}_activity_count"
+            if hass.states.get(general_counter):
+                await hass.services.async_call(
+                    "counter", "increment",
+                    {"entity_id": general_counter},
                     blocking=True
                 )
             
@@ -379,45 +647,6 @@ async def _register_services(hass: HomeAssistant) -> None:
                     )
             
             _LOGGER.info("Activity logged for %s: %s", dog, activity_type)
-    
-    async def add_dog(call: ServiceCall) -> None:
-        """Handle add dog service call."""
-        new_dog_name = call.data["dog_name"].lower().strip()
-        push_devices = call.data.get("push_devices", [])
-        door_sensor = call.data.get("door_sensor")
-        create_dashboard = call.data.get("create_dashboard", True)
-        
-        # Check if dog already exists
-        for entry_data in hass.data[DOMAIN].values():
-            if entry_data["dog_name"] == new_dog_name:
-                raise ServiceValidationError(f"Dog '{new_dog_name}' already exists")
-        
-        # Create new config entry data
-        new_config = {
-            CONF_DOG_NAME: new_dog_name,
-            CONF_PUSH_DEVICES: push_devices,
-            CONF_PERSON_TRACKING: True,
-            CONF_CREATE_DASHBOARD: create_dashboard,
-        }
-        
-        if door_sensor:
-            new_config[CONF_DOOR_SENSOR] = door_sensor
-        
-        # Create helper entities
-        await async_create_helpers(hass, new_dog_name, new_config)
-        
-        # Create dashboard if requested
-        if create_dashboard:
-            await async_create_dashboard(hass, new_dog_name, new_config)
-        
-        # Setup daily reset
-        await _setup_daily_reset(hass, new_dog_name)
-        
-        # Setup door sensor if provided
-        if door_sensor:
-            await _setup_door_sensor_automation(hass, new_dog_name, door_sensor)
-        
-        _LOGGER.info("New dog added: %s", new_dog_name)
     
     async def test_notification(call: ServiceCall) -> None:
         """Handle test notification service call."""
@@ -474,11 +703,6 @@ async def _register_services(hass: HomeAssistant) -> None:
     )
     
     hass.services.async_register(
-        DOMAIN, SERVICE_ADD_DOG,
-        add_dog, ADD_DOG_SCHEMA
-    )
-    
-    hass.services.async_register(
         DOMAIN, SERVICE_TEST_NOTIFICATION,
         test_notification, TEST_NOTIFICATION_SCHEMA
     )
@@ -515,9 +739,9 @@ async def _send_notification(
     if not notification_targets:
         notification_targets = [target] if target else push_devices
     
+    # Add persistent notification as fallback
     if not notification_targets:
-        _LOGGER.warning("No notification targets available")
-        return
+        notification_targets = ["persistent_notification"]
     
     # Prepare notification data
     notification_data = {"title": title, "message": message}
@@ -566,70 +790,11 @@ async def _setup_daily_reset(hass: HomeAssistant, dog_name: str) -> None:
 async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door_sensor: str) -> None:
     """Setup door sensor automation for a dog."""
     
-    async def door_sensor_callback(entity_id, old_state, new_state):
-        """Handle door sensor state changes."""
-        if (new_state and new_state.state == "off" and 
-            old_state and old_state.state == "on"):
-            
-            # Door closed - ask if dog was outside
-            await asyncio.sleep(2)  # Wait a moment
-            
-            # Check if we should ask (avoid spam)
-            last_ask_entity = f"input_datetime.{dog_name}_last_door_ask"
-            last_ask_state = hass.states.get(last_ask_entity)
-            
-            should_ask = True
-            if last_ask_state and last_ask_state.state not in ["unknown", "unavailable"]:
-                try:
-                    last_ask = datetime.fromisoformat(last_ask_state.state.replace("Z", "+00:00"))
-                    if (datetime.now() - last_ask).total_seconds() < 300:  # 5 minutes
-                        should_ask = False
-                except ValueError:
-                    pass
-            
-            if should_ask:
-                # Update last ask time
-                if hass.states.get(last_ask_entity):
-                    await hass.services.async_call(
-                        "input_datetime", "set_datetime",
-                        {
-                            "entity_id": last_ask_entity,
-                            "datetime": datetime.now().isoformat()
-                        }
-                    )
-                
-                # Find config for this dog
-                config = None
-                for entry_data in hass.data[DOMAIN].values():
-                    if entry_data["dog_name"] == dog_name:
-                        config = entry_data["config"]
-                        break
-                
-                if config:
-                    # Send interactive notification
-                    notification_data = {
-                        "actions": [
-                            {"action": f"dog_outside_yes_{dog_name}", "title": "✅ Ja"},
-                            {"action": f"dog_outside_no_{dog_name}", "title": "❌ Nein"}
-                        ]
-                    }
-                    
-                    await _send_notification(
-                        hass, config,
-                        f"🚪 War {dog_name.title()} draußen?",
-                        "Türsensor hat Bewegung erkannt. War der Hund draußen?",
-                        data=notification_data
-                    )
-    
-async def _setup_door_sensor_automation(hass: HomeAssistant, [door_sensor: str], door_sensor_callback, dog_name: str) -> None:
-    """Setup door sensor automation for a dog."""
-    
     async def door_sensor_callback(event):
         """Handle door sensor state changes."""
         # Get the new and old states from the event
         new_state = event.data.get("new_state")
         old_state = event.data.get("old_state")
-        entity_id = event.data.get("entity_id")
         
         if (new_state and new_state.state == "off" and 
             old_state and old_state.state == "on"):
@@ -685,96 +850,6 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, [door_sensor: str],
                     )
     
     # KORRIGIERT: Verwende async_track_state_change_event
-    from homeassistant.helpers.event import async_track_state_change_event
     async_track_state_change_event(hass, [door_sensor], door_sensor_callback)
     
     _LOGGER.info("Door sensor automation set up for %s with sensor %s", dog_name, door_sensor)
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Hundesystem from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-    
-    dog_name = entry.data[CONF_DOG_NAME]
-    _LOGGER.info("=== HUNDESYSTEM SETUP START für %s ===", dog_name)
-    
-    # Store config data
-    hass.data[DOMAIN][entry.entry_id] = {
-        "config": entry.data,
-        "dog_name": dog_name,
-        "store": Store(hass, 1, f"{DOMAIN}_{dog_name}")
-    }
-    
-    try:
-        # Step 1: Create helper entities first
-        _LOGGER.info("Step 1: Creating helper entities for %s", dog_name)
-        await async_create_helpers(hass, dog_name, entry.data)
-        _LOGGER.info("Helper entities created successfully for %s", dog_name)
-        
-        # Step 2: Wait for entities to be ready
-        _LOGGER.info("Step 2: Waiting for entities to be ready...")
-        await asyncio.sleep(2)
-        
-        # Step 3: Set up platforms
-        _LOGGER.info("Step 3: Setting up platforms for %s", dog_name)
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-        _LOGGER.info("Platforms set up successfully for %s", dog_name)
-        
-        # Step 4: Create dashboard if requested
-        if entry.data.get(CONF_CREATE_DASHBOARD, True):
-            _LOGGER.info("Step 4: Creating dashboard for %s", dog_name)
-            await async_create_dashboard(hass, dog_name, entry.data)
-        
-        # Step 5: Register services (only once)
-        if len(hass.data[DOMAIN]) == 1:
-            _LOGGER.info("Step 5: Registering services")
-            await _register_services(hass)
-        
-        # Step 6: Setup automations
-        _LOGGER.info("Step 6: Setting up automations for %s", dog_name)
-        await _setup_daily_reset(hass, dog_name)
-        
-        door_sensor = entry.data.get(CONF_DOOR_SENSOR)
-        if door_sensor:
-            await _setup_door_sensor_automation(hass, dog_name, door_sensor)
-        
-        # Step 7: Verify setup
-        _LOGGER.info("Step 7: Verifying setup for %s", dog_name)
-        await _verify_setup(hass, dog_name)
-        
-        _LOGGER.info("=== HUNDESYSTEM SETUP COMPLETE für %s ===", dog_name)
-        return True
-        
-    except Exception as e:
-        _LOGGER.error("=== HUNDESYSTEM SETUP FAILED für %s: %s ===", dog_name, e, exc_info=True)
-        return False
-
-
-async def _verify_setup(hass: HomeAssistant, dog_name: str) -> None:
-    """Verify that setup was successful."""
-    
-    # Check some key entities
-    key_entities = [
-        f"input_boolean.{dog_name}_feeding_morning",
-        f"counter.{dog_name}_outside_count",
-        f"sensor.{dog_name}_status",
-    ]
-    
-    missing_entities = []
-    for entity_id in key_entities:
-        if not hass.states.get(entity_id):
-            missing_entities.append(entity_id)
-    
-    if missing_entities:
-        _LOGGER.warning("Missing entities for %s: %s", dog_name, missing_entities)
-    else:
-        _LOGGER.info("All key entities created successfully for %s", dog_name)
-        
-    # Send test notification
-    await hass.services.async_call(
-        "persistent_notification", "create",
-        {
-            "title": f"🐶 Hundesystem für {dog_name.title()}",
-            "message": f"Setup erfolgreich! Entitäten: {len(key_entities) - len(missing_entities)}/{len(key_entities)}",
-            "notification_id": f"hundesystem_setup_{dog_name}"
-        }
-    )
