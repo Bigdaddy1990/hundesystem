@@ -282,11 +282,11 @@ class HundesystemFeedingStatusSensor(HundesystemSensorBase):
         # Initial update
         await self._async_update_feeding_status()
 
-    @callback
-    async def _async_feeding_status_changed(self, event) -> None:
-        """Handle feeding status changes."""
-        await self._async_update_feeding_status()
-        self.async_write_ha_state()
+     @callback
+     async def _async_feeding_status_changed(self, event) -> None:
+     """Handle feeding status changes."""
+     await self._async_update_feeding_status()
+     self.async_write_ha_state()
 
     async def _async_update_feeding_status(self) -> None:
         """Update the feeding status."""
