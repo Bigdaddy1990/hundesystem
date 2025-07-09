@@ -76,7 +76,7 @@ class HundesystemBinarySensorBase(BinarySensorEntity, RestoreEntity):
             "name": f"Hundesystem {dog_name.title()}",
             "manufacturer": "Hundesystem",
             "model": "Dog Management System",
-            "sw_version": "2.0.0",
+            "sw_version": "2.0.2",
         }
 
     async def async_added_to_hass(self) -> None:
@@ -121,9 +121,10 @@ class HundesystemFeedingCompleteBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_feeding_state_changed(self, event) -> None:
+    def _async_feeding_state_changed(self, event) -> None:
         """Handle state changes of feeding entities."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -204,9 +205,10 @@ class HundesystemDailyTasksCompleteBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_tasks_state_changed(self, event) -> None:
+    def _async_tasks_state_changed(self, event) -> None:
         """Handle state changes of task entities."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -296,9 +298,10 @@ class HundesystemVisitorModeBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_visitor_state_changed(self, event) -> None:
+    def _async_visitor_state_changed(self, event) -> None:
         """Handle state changes of visitor mode entities."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -406,9 +409,10 @@ class HundesystemOutsideStatusBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_outside_state_changed(self, event) -> None:
+    def _async_outside_state_changed(self, event) -> None:
         """Handle state changes of outside status."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -527,15 +531,17 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_attention_state_changed(self, event) -> None:
+    def _async_attention_state_changed(self, event) -> None:
         """Handle state changes that might affect attention needs."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_time_based_check(self, now) -> None:
+    def _async_time_based_check(self, now) -> None:
         """Periodic check for time-based attention needs."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -570,7 +576,7 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
             priority = "critical" if health_status == "Notfall" else "high"
         elif health_status == "Schwach":
             reasons.append("Gesundheit beobachten")
-            priority = max(priority, "medium")
+            priority = max(priority, "medium") if priority != "critical" and priority != "high" else priority
         
         # Only check feeding and activity if not in visitor mode
         if not visitor_mode:
@@ -579,19 +585,22 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
             feeding_issues = self._check_feeding_issues(current_time)
             reasons.extend(feeding_issues["reasons"])
             if feeding_issues["priority"] and feeding_issues["priority"] != "low":
-                priority = max(priority, feeding_issues["priority"])
+                if priority not in ["critical", "high"]:
+                    priority = max(priority, feeding_issues["priority"])
             
             # Check activity status
             activity_issues = self._check_activity_issues()
             reasons.extend(activity_issues["reasons"])
             if activity_issues["priority"] and activity_issues["priority"] != "low":
-                priority = max(priority, activity_issues["priority"])
+                if priority not in ["critical", "high"]:
+                    priority = max(priority, activity_issues["priority"])
         
         # Check for overdue medication or vet appointments
         medical_issues = self._check_medical_issues()
         reasons.extend(medical_issues["reasons"])
         if medical_issues["priority"] and medical_issues["priority"] != "low":
-            priority = max(priority, medical_issues["priority"])
+            if priority not in ["critical", "high"]:
+                priority = max(priority, medical_issues["priority"])
         
         needs_attention = len(reasons) > 0
         self._attr_is_on = needs_attention
@@ -647,9 +656,9 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
                     
                     # Higher priority if it's late in the meal window
                     if current_hour > (start_hour + end_hour) / 2:
-                        priority = max(priority, "medium")
+                        priority = max(priority, "medium") if priority not in ["critical", "high"] else priority
                     else:
-                        priority = max(priority, "low")
+                        priority = max(priority, "low") if priority not in ["critical", "high", "medium"] else priority
         
         # Check for completely missed meals (past time window)
         for meal, (start_hour, end_hour) in meal_windows.items():
@@ -662,7 +671,7 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
                         meal_name = "Mittagessen"
                     
                     reasons.append(f"{meal_name} verpasst")
-                    priority = max(priority, "high")
+                    priority = max(priority, "high") if priority != "critical" else priority
         
         return {"reasons": reasons, "priority": priority}
 
@@ -679,11 +688,11 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
             # Check time to determine urgency
             current_hour = datetime.now().hour
             if current_hour >= 20:  # After 8 PM
-                priority = max(priority, "high")
+                priority = max(priority, "high") if priority != "critical" else priority
             elif current_hour >= 16:  # After 4 PM
-                priority = max(priority, "medium")
+                priority = max(priority, "medium") if priority not in ["critical", "high"] else priority
             else:
-                priority = max(priority, "low")
+                priority = max(priority, "low") if priority not in ["critical", "high", "medium"] else priority
         
         # Check poop status
         poop_state = self.hass.states.get(f"input_boolean.{self._dog_name}_poop_done")
@@ -697,7 +706,7 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
                     
                     if hours_since > 12:
                         reasons.append("Geschäft überfällig")
-                        priority = max(priority, "medium")
+                        priority = max(priority, "medium") if priority not in ["critical", "high"] else priority
                 except ValueError:
                     pass
         
@@ -721,7 +730,7 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
                 
                 if current_time >= med_time:
                     reasons.append("Medikament fällig")
-                    priority = max(priority, "medium")
+                    priority = max(priority, "medium") if priority not in ["critical", "high"] else priority
             except ValueError:
                 pass
         
@@ -741,13 +750,13 @@ class HundesystemNeedsAttentionBinarySensor(HundesystemBinarySensorBase):
                 
                 if time_until.days == 0:
                     reasons.append("Tierarzttermin heute")
-                    priority = max(priority, "high")
+                    priority = max(priority, "high") if priority != "critical" else priority
                 elif time_until.days == 1:
                     reasons.append("Tierarzttermin morgen")
-                    priority = max(priority, "medium")
+                    priority = max(priority, "medium") if priority not in ["critical", "high"] else priority
                 elif 0 < time_until.days <= 3:
                     reasons.append(f"Tierarzttermin in {time_until.days} Tagen")
-                    priority = max(priority, "low")
+                    priority = max(priority, "low") if priority not in ["critical", "high", "medium"] else priority
             except ValueError:
                 pass
         
@@ -787,9 +796,10 @@ class HundesystemHealthStatusBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_health_changed(self, event) -> None:
+    def _async_health_changed(self, event) -> None:
         """Handle health-related changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -888,9 +898,10 @@ class HundesystemEmergencyStatusBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_emergency_changed(self, event) -> None:
+    def _async_emergency_changed(self, event) -> None:
         """Handle emergency-related changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -927,20 +938,6 @@ class HundesystemEmergencyStatusBinarySensor(HundesystemBinarySensorBase):
         }
 
 
-# Additional binary sensor classes continue with the same pattern:
-# - HundesystemOverdueFeedingBinarySensor
-# - HundesystemInactivityWarningBinarySensor 
-# - HundesystemMedicationDueBinarySensor
-# - HundesystemVetAppointmentReminderBinarySensor
-# - HundesystemWeatherAlertBinarySensor
-
-# These would follow similar patterns to implement specific monitoring for:
-# - Overdue feeding times
-# - Inactivity warnings
-# - Medication schedules
-# - Vet appointment reminders
-# - Weather-based alerts
-
 class HundesystemOverdueFeedingBinarySensor(HundesystemBinarySensorBase):
     """Binary sensor for overdue feeding detection."""
 
@@ -974,15 +971,17 @@ class HundesystemOverdueFeedingBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_feeding_changed(self, event) -> None:
+    def _async_feeding_changed(self, event) -> None:
         """Handle feeding-related changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_check_overdue(self, now) -> None:
+    def _async_check_overdue(self, now) -> None:
         """Periodic check for overdue feedings."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -1080,15 +1079,17 @@ class HundesystemInactivityWarningBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_activity_changed(self, event) -> None:
+    def _async_activity_changed(self, event) -> None:
         """Handle activity changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_check_inactivity(self, now) -> None:
+    def _async_check_inactivity(self, now) -> None:
         """Periodic inactivity check."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -1200,15 +1201,17 @@ class HundesystemMedicationDueBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_medication_changed(self, event) -> None:
+    def _async_medication_changed(self, event) -> None:
         """Handle medication changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_check_medication(self, now) -> None:
+    def _async_check_medication(self, now) -> None:
         """Periodic medication check."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -1321,15 +1324,17 @@ class HundesystemVetAppointmentReminderBinarySensor(HundesystemBinarySensorBase)
         await self._async_update_state()
 
     @callback
-    async def _async_vet_changed(self, event) -> None:
+    def _async_vet_changed(self, event) -> None:
         """Handle vet appointment changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_check_appointments(self, now) -> None:
+    def _async_check_appointments(self, now) -> None:
         """Periodic appointment check."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
@@ -1467,15 +1472,17 @@ class HundesystemWeatherAlertBinarySensor(HundesystemBinarySensorBase):
         await self._async_update_state()
 
     @callback
-    async def _async_weather_changed(self, event) -> None:
+    def _async_weather_changed(self, event) -> None:
         """Handle weather changes."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     @callback
-    async def _async_check_weather(self, now) -> None:
+    def _async_check_weather(self, now) -> None:
         """Periodic weather check."""
-        await self._async_update_state()
+        # KORRIGIERT: @callback kann nicht mit async def verwendet werden
+        self.hass.async_create_task(self._async_update_state())
         self.async_write_ha_state()
 
     async def _async_update_state(self) -> None:
