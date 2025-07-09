@@ -621,8 +621,70 @@ async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door
                         data=notification_data
                     )
     
-    # Track door sensor state changes
-    from homeassistant.helpers.event import async_track_state_change
-    async_track_state_change(hass, door_sensor, door_sensor_callback)
+async def _setup_door_sensor_automation(hass: HomeAssistant, dog_name: str, door_sensor: str) -> None:
+    """Setup door sensor automation for a dog."""
+    
+    async def door_sensor_callback(event):
+        """Handle door sensor state changes."""
+        # Get the new and old states from the event
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+        
+        if (new_state and new_state.state == "off" and 
+            old_state and old_state.state == "on"):
+            
+            # Door closed - ask if dog was outside
+            await asyncio.sleep(2)  # Wait a moment
+            
+            # Check if we should ask (avoid spam)
+            last_ask_entity = f"input_datetime.{dog_name}_last_door_ask"
+            last_ask_state = hass.states.get(last_ask_entity)
+            
+            should_ask = True
+            if last_ask_state and last_ask_state.state not in ["unknown", "unavailable"]:
+                try:
+                    last_ask = datetime.fromisoformat(last_ask_state.state.replace("Z", "+00:00"))
+                    if (datetime.now() - last_ask).total_seconds() < 300:  # 5 minutes
+                        should_ask = False
+                except ValueError:
+                    pass
+            
+            if should_ask:
+                # Update last ask time
+                if hass.states.get(last_ask_entity):
+                    await hass.services.async_call(
+                        "input_datetime", "set_datetime",
+                        {
+                            "entity_id": last_ask_entity,
+                            "datetime": datetime.now().isoformat()
+                        }
+                    )
+                
+                # Find config for this dog
+                config = None
+                for entry_data in hass.data[DOMAIN].values():
+                    if entry_data["dog_name"] == dog_name:
+                        config = entry_data["config"]
+                        break
+                
+                if config:
+                    # Send interactive notification
+                    notification_data = {
+                        "actions": [
+                            {"action": f"dog_outside_yes_{dog_name}", "title": "✅ Ja"},
+                            {"action": f"dog_outside_no_{dog_name}", "title": "❌ Nein"}
+                        ]
+                    }
+                    
+                    await _send_notification(
+                        hass, config,
+                        f"🚪 War {dog_name.title()} draußen?",
+                        "Türsensor hat Bewegung erkannt. War der Hund draußen?",
+                        data=notification_data
+                    )
+    
+    # KORRIGIERT: Verwende async_track_state_change_event anstatt async_track_state_change
+    from homeassistant.helpers.event import async_track_state_change_event
+    async_track_state_change_event(hass, [door_sensor], door_sensor_callback)
     
     _LOGGER.info("Door sensor automation set up for %s with sensor %s", dog_name, door_sensor)
