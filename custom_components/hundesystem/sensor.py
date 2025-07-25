@@ -373,78 +373,88 @@ class HundesystemStatusSensor(HundesystemSensorBase):
             if needs_attention:
                 self._attr_native_value = STATUS_MESSAGES["attention_needed"]
                 self._attr_icon = ICONS["attention"]
-                
-                # Get attention reasons
-                attention_reasons = []
-                if attention_state and attention_state.attributes:
-                    attention_reasons = attention_state.attributes.get("reasons", [])
-                
                 self._attr_extra_state_attributes = {
                     "priority": "medium",
                     "needs_attention": True,
-                    "attention_reasons": attention_reasons,
                     "last_updated": datetime.now().isoformat(),
                 }
                 return
 
-            # Check feeding and activity progress
-            fed_count = sum(
-                1 for entity_id in self._feeding_entities
-                if self.hass.states.get(entity_id) and self.hass.states.get(entity_id).state == "on"
-            )
+            # Check basic needs
+            basic_needs_met = self._check_basic_needs()
             
-            outside_state = self.hass.states.get(f"input_boolean.{self._dog_name}_outside")
-            was_outside = outside_state.state == "on" if outside_state else False
-            
-            poop_state = self.hass.states.get(f"input_boolean.{self._dog_name}_poop_done")
-            poop_done = poop_state.state == "on" if poop_state else False
-
-            # Determine status based on completion
-            total_main_meals = 3  # morning, lunch, evening
-            if fed_count >= total_main_meals and was_outside and poop_done:
-                self._attr_native_value = STATUS_MESSAGES["all_good"]
-                self._attr_icon = ICONS["complete"]
-                mood = "happy"
-            elif fed_count < total_main_meals:
-                self._attr_native_value = STATUS_MESSAGES["needs_feeding"]
-                self._attr_icon = ICONS["food"]
-                mood = "neutral"
-            elif not was_outside:
-                self._attr_native_value = STATUS_MESSAGES["needs_outside"]
-                self._attr_icon = ICONS["walk"]
-                mood = "bored"
-            else:
+            if basic_needs_met["all_met"]:
                 self._attr_native_value = STATUS_MESSAGES["happy"]
                 self._attr_icon = ICONS["happy"]
-                mood = "happy"
-            
-            # Calculate completion percentage
-            total_tasks = 5  # 3 meals + outside + poop
-            completed_tasks = min(fed_count, 3) + (1 if was_outside else 0) + (1 if poop_done else 0)
-            completion_percentage = round((completed_tasks / total_tasks) * 100)
-            
+                priority = "low"
+            else:
+                unmet_needs = basic_needs_met["unmet_needs"]
+                if len(unmet_needs) >= 3:
+                    self._attr_native_value = STATUS_MESSAGES["needs_care"]
+                    self._attr_icon = ICONS["attention"]
+                    priority = "high"
+                else:
+                    self._attr_native_value = STATUS_MESSAGES["okay"]
+                    self._attr_icon = ICONS["dog"]
+                    priority = "medium"
+
             self._attr_extra_state_attributes = {
-                "priority": "low",
-                "feeding_progress": f"{fed_count}/{len(self._feeding_entities)}",
-                "was_outside": was_outside,
-                "poop_done": poop_done,
-                "completion_percentage": completion_percentage,
-                "mood": mood,
+                "priority": priority,
+                "basic_needs": basic_needs_met,
                 "health_status": health_status,
+                "visitor_mode": visitor_mode,
+                "emergency_mode": False,
                 "last_updated": datetime.now().isoformat(),
             }
             
         except Exception as e:
             _LOGGER.error("Error updating status for %s: %s", self._dog_name, e)
             self._attr_native_value = "Fehler"
+            self._attr_icon = "mdi:alert-circle"
             self._attr_extra_state_attributes = {
                 "error": str(e),
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _check_basic_needs(self) -> Dict[str, Any]:
+        """Check if basic needs are met."""
+        needs = {
+            "fed": False,
+            "outside": False,
+            "poop": False,
+        }
+        
+        unmet_needs = []
+        
+        # Check feeding (at least morning meal)
+        morning_fed_state = self.hass.states.get(f"input_boolean.{self._dog_name}_feeding_morning")
+        needs["fed"] = morning_fed_state.state == "on" if morning_fed_state else False
+        if not needs["fed"]:
+            unmet_needs.append("Frühstück")
+        
+        # Check outside activity
+        outside_state = self.hass.states.get(f"input_boolean.{self._dog_name}_outside")
+        needs["outside"] = outside_state.state == "on" if outside_state else False
+        if not needs["outside"]:
+            unmet_needs.append("Draußen")
+            
+        # Check bathroom needs
+        poop_state = self.hass.states.get(f"input_boolean.{self._dog_name}_poop_done")
+        needs["poop"] = poop_state.state == "on" if poop_state else False
+        if not needs["poop"]:
+            unmet_needs.append("Geschäft")
+        
+        return {
+            "all_met": len(unmet_needs) == 0,
+            "unmet_needs": unmet_needs,
+            "needs_detail": needs,
+            "met_count": sum(needs.values()),
+            "total_count": len(needs),
+        }
+
 
 class HundesystemActivitySensor(HundesystemSensorBase):
-    """Sensor for activity tracking and analysis."""
+    """Sensor for activity tracking."""
 
     def __init__(
         self,
@@ -455,23 +465,33 @@ class HundesystemActivitySensor(HundesystemSensorBase):
         """Initialize the activity sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["activity"])
         self._attr_icon = ICONS["walk"]
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_native_unit_of_measurement = "activities"
         
-        # Track activity counters
         self._activity_counters = [
             f"counter.{dog_name}_outside_count",
             f"counter.{dog_name}_walk_count",
             f"counter.{dog_name}_play_count",
             f"counter.{dog_name}_training_count",
         ]
+        
+        self._activity_times = [
+            f"input_datetime.{dog_name}_last_outside",
+            f"input_datetime.{dog_name}_last_walk",
+            f"input_datetime.{dog_name}_last_play",
+            f"input_datetime.{dog_name}_last_training",
+        ]
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Track activity counters
-        self._track_entity_changes(self._activity_counters, self._activity_changed)
+        # Track activity entities
+        tracked_entities = self._activity_counters + self._activity_times
+        self._track_entity_changes(tracked_entities, self._activity_changed)
+        
+        # Update every hour
+        self._track_time_interval(self._periodic_update, timedelta(hours=1))
         
         # Initial update
         await self._async_update_activity()
@@ -482,43 +502,53 @@ class HundesystemActivitySensor(HundesystemSensorBase):
         self.hass.async_create_task(self._async_update_activity())
         self.async_write_ha_state()
 
+    @callback
+    def _periodic_update(self, time) -> None:
+        """Periodic update callback - CORRECTED."""
+        self.hass.async_create_task(self._async_update_activity())
+
     async def _async_update_activity(self) -> None:
         """Update the activity status."""
         try:
+            activity_counts = {}
+            activity_times = {}
             total_activities = 0
-            activity_breakdown = {}
             
-            # Sum all activity counters
-            for counter_entity in self._activity_counters:
-                state = self.hass.states.get(counter_entity)
-                count = int(state.state) if state and state.state.isdigit() else 0
-                
-                # Extract activity type from entity name
-                activity_type = counter_entity.split("_")[-2]  # e.g., "walk" from "counter.dog_walk_count"
-                activity_breakdown[activity_type] = count
+            activity_types = ["outside", "walk", "play", "training"]
+            
+            for i, activity in enumerate(activity_types):
+                # Get counter value
+                counter_entity = self._activity_counters[i]
+                counter_state = self.hass.states.get(counter_entity)
+                count = int(counter_state.state) if counter_state and counter_state.state.isdigit() else 0
+                activity_counts[activity] = count
                 total_activities += count
+                
+                # Get last time
+                time_entity = self._activity_times[i]
+                time_state = self.hass.states.get(time_entity)
+                if time_state and time_state.state not in ["unknown", "unavailable"]:
+                    activity_times[f"last_{activity}"] = time_state.state
+            
+            # Calculate activity level
+            activity_level = self._calculate_activity_level(activity_counts)
+            
+            # Find most recent activity
+            most_recent_activity = self._get_most_recent_activity(activity_times)
+            
+            # Check if dog needs more activity
+            needs_activity = self._check_activity_needs(activity_counts, activity_times)
             
             self._attr_native_value = total_activities
             
-            # Determine activity level
-            if total_activities == 0:
-                activity_level = "Keine Aktivität"
-                recommendation = "Aktivität erforderlich"
-            elif total_activities < 3:
-                activity_level = "Wenig aktiv"
-                recommendation = "Mehr Bewegung empfohlen"
-            elif total_activities < 6:
-                activity_level = "Normal aktiv"
-                recommendation = "Gute Aktivität"
-            else:
-                activity_level = "Sehr aktiv"
-                recommendation = "Ausgezeichnete Aktivität"
-            
             self._attr_extra_state_attributes = {
+                "activity_counts": activity_counts,
+                "activity_times": activity_times,
                 "activity_level": activity_level,
-                "recommendation": recommendation,
-                "activity_breakdown": activity_breakdown,
-                "total_activities": total_activities,
+                "most_recent_activity": most_recent_activity,
+                "needs_more_activity": needs_activity["needs_more"],
+                "activity_recommendations": needs_activity["recommendations"],
+                "total_today": total_activities,
                 "last_updated": datetime.now().isoformat(),
             }
             
@@ -530,9 +560,94 @@ class HundesystemActivitySensor(HundesystemSensorBase):
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _calculate_activity_level(self, activity_counts: Dict[str, int]) -> str:
+        """Calculate overall activity level."""
+        total = sum(activity_counts.values())
+        
+        if total == 0:
+            return "Sehr niedrig"
+        elif total <= 2:
+            return "Niedrig"
+        elif total <= 5:
+            return "Normal"
+        elif total <= 8:
+            return "Hoch"
+        else:
+            return "Sehr hoch"
+
+    def _get_most_recent_activity(self, activity_times: Dict[str, str]) -> Optional[str]:
+        """Get the most recent activity."""
+        try:
+            most_recent = None
+            most_recent_time = None
+            
+            for activity, time_str in activity_times.items():
+                if time_str and time_str not in ["unknown", "unavailable"]:
+                    try:
+                        activity_time = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+                        if most_recent_time is None or activity_time > most_recent_time:
+                            most_recent = activity.replace("last_", "")
+                            most_recent_time = activity_time
+                    except ValueError:
+                        continue
+            
+            if most_recent and most_recent_time:
+                time_ago = datetime.now(most_recent_time.tzinfo) - most_recent_time
+                hours_ago = time_ago.total_seconds() / 3600
+                
+                if hours_ago < 1:
+                    time_desc = "vor weniger als 1 Stunde"
+                elif hours_ago < 24:
+                    time_desc = f"vor {int(hours_ago)} Stunden"
+                else:
+                    days_ago = int(hours_ago / 24)
+                    time_desc = f"vor {days_ago} Tag(en)"
+                
+                return f"{ACTIVITY_TYPES.get(most_recent, most_recent)} {time_desc}"
+            
+            return "Keine Aktivität heute"
+            
+        except Exception as e:
+            _LOGGER.error("Error calculating most recent activity: %s", e)
+            return "Fehler bei Berechnung"
+
+    def _check_activity_needs(self, activity_counts: Dict[str, int], activity_times: Dict[str, str]) -> Dict[str, Any]:
+        """Check if dog needs more activity."""
+        recommendations = []
+        needs_more = False
+        
+        # Check minimum requirements
+        if activity_counts.get("outside", 0) < 3:
+            needs_more = True
+            recommendations.append("Mehr Gartenbesuche")
+        
+        if activity_counts.get("walk", 0) < 1:
+            needs_more = True
+            recommendations.append("Spaziergang")
+        
+        # Check time since last activities
+        now = datetime.now()
+        
+        # Check outside time
+        last_outside = activity_times.get("last_outside")
+        if last_outside:
+            try:
+                last_time = datetime.fromisoformat(last_outside.replace("Z", "+00:00"))
+                hours_since = (now - last_time.replace(tzinfo=None)).total_seconds() / 3600
+                if hours_since > 6:
+                    needs_more = True
+                    recommendations.append("War lange nicht draußen")
+            except ValueError:
+                pass
+        
+        return {
+            "needs_more": needs_more,
+            "recommendations": recommendations,
+        }
+
 
 class HundesystemDailySummarySensor(HundesystemSensorBase):
-    """Sensor for comprehensive daily summary."""
+    """Sensor for daily summary."""
 
     def __init__(
         self,
@@ -542,90 +657,168 @@ class HundesystemDailySummarySensor(HundesystemSensorBase):
     ) -> None:
         """Initialize the daily summary sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["daily_summary"])
-        self._attr_icon = ICONS["notes"]
+        self._attr_icon = ICONS["status"]
+        self._attr_native_unit_of_measurement = "points"
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Track relevant entities for summary
-        summary_entities = [
-            f"sensor.{self._dog_name}_feeding_status",
-            f"sensor.{self._dog_name}_activity",
-            f"input_select.{self._dog_name}_health_status",
-            f"input_select.{self._dog_name}_mood",
-        ]
-        self._track_entity_changes(summary_entities, self._summary_changed)
-        
-        # Update summary every hour
-        self._track_time_interval(self._periodic_summary_update, timedelta(hours=1))
+        # Update every 30 minutes
+        self._track_time_interval(self._periodic_summary_update, timedelta(minutes=30))
         
         # Initial update
-        await self._async_update_summary()
+        await self._async_update_daily_summary()
 
     @callback
-    def _summary_changed(self, event) -> None:
-        """Handle summary relevant changes - CORRECTED."""
-        self.hass.async_create_task(self._async_update_summary())
-        self.async_write_ha_state()
-
-    @callback
-    def _periodic_summary_update(self, now) -> None:
+    def _periodic_summary_update(self, time) -> None:
         """Periodic summary update - CORRECTED."""
-        self.hass.async_create_task(self._async_update_summary())
-        self.async_write_ha_state()
+        self.hass.async_create_task(self._async_update_daily_summary())
 
-    async def _async_update_summary(self) -> None:
+    async def _async_update_daily_summary(self) -> None:
         """Update the daily summary."""
         try:
-            now = datetime.now()
-            
             # Get feeding status
-            feeding_sensor = self.hass.states.get(f"sensor.{self._dog_name}_feeding_status")
-            feeding_info = "Unbekannt"
-            if feeding_sensor and feeding_sensor.attributes:
-                feeding_info = feeding_sensor.attributes.get("status_text", "Unbekannt")
+            feeding_score = self._calculate_feeding_score()
             
-            # Get activity status
-            activity_sensor = self.hass.states.get(f"sensor.{self._dog_name}_activity")
-            activity_info = "Unbekannt"
-            if activity_sensor and activity_sensor.attributes:
-                activity_info = activity_sensor.attributes.get("activity_level", "Unbekannt")
+            # Get activity score
+            activity_score = self._calculate_activity_score()
             
-            # Get health and mood
-            health_state = self.hass.states.get(f"input_select.{self._dog_name}_health_status")
-            health_status = health_state.state if health_state else "Gut"
+            # Get health score
+            health_score = self._calculate_health_score()
             
-            mood_state = self.hass.states.get(f"input_select.{self._dog_name}_mood")
-            mood = mood_state.state if mood_state else "Glücklich"
+            # Calculate overall score
+            overall_score = (feeding_score + activity_score + health_score) / 3
             
-            # Create summary text
-            summary = f"Fütterung: {feeding_info}, Aktivität: {activity_info}, Gesundheit: {health_status}, Stimmung: {mood}"
+            # Determine daily rating
+            if overall_score >= 9:
+                rating = "Perfekter Tag"
+                icon = ICONS["happy"]
+            elif overall_score >= 7:
+                rating = "Guter Tag"
+                icon = ICONS["dog"]
+            elif overall_score >= 5:
+                rating = "Durchschnittlicher Tag"
+                icon = ICONS["status"]
+            else:
+                rating = "Verbesserungswürdiger Tag"
+                icon = ICONS["attention"]
             
-            self._attr_native_value = summary
+            self._attr_native_value = round(overall_score, 1)
+            self._attr_icon = icon
             
-            # Detailed attributes
             self._attr_extra_state_attributes = {
-                "date": now.date().isoformat(),
-                "feeding_status": feeding_info,
-                "activity_level": activity_info,
-                "health_status": health_status,
-                "mood": mood,
-                "summary_time": now.strftime("%H:%M"),
-                "last_updated": now.isoformat(),
+                "daily_rating": rating,
+                "feeding_score": feeding_score,
+                "activity_score": activity_score,
+                "health_score": health_score,
+                "overall_score": overall_score,
+                "recommendations": self._get_daily_recommendations(feeding_score, activity_score, health_score),
+                "date": datetime.now().date().isoformat(),
+                "last_updated": datetime.now().isoformat(),
             }
             
         except Exception as e:
             _LOGGER.error("Error updating daily summary for %s: %s", self._dog_name, e)
-            self._attr_native_value = "Fehler bei Zusammenfassung"
+            self._attr_native_value = 0
             self._attr_extra_state_attributes = {
                 "error": str(e),
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _calculate_feeding_score(self) -> float:
+        """Calculate feeding score (0-10)."""
+        score = 0
+        
+        # Essential meals (7 points total)
+        essential_meals = ["morning", "lunch", "evening"]
+        for meal in essential_meals:
+            state = self.hass.states.get(f"input_boolean.{self._dog_name}_feeding_{meal}")
+            if state and state.state == "on":
+                score += 2.33  # ~7 points for all 3 meals
+        
+        # Snack bonus (1 point)
+        snack_state = self.hass.states.get(f"input_boolean.{self._dog_name}_feeding_snack")
+        if snack_state and snack_state.state == "on":
+            score += 1
+        
+        # Regularity bonus (2 points) - check if meals were on time
+        score += 2  # Simplified - assume on time for now
+        
+        return min(score, 10)
+
+    def _calculate_activity_score(self) -> float:
+        """Calculate activity score (0-10)."""
+        score = 0
+        
+        # Outside visits (4 points)
+        outside_count_state = self.hass.states.get(f"counter.{self._dog_name}_outside_count")
+        outside_count = int(outside_count_state.state) if outside_count_state and outside_count_state.state.isdigit() else 0
+        score += min(outside_count * 1, 4)  # Max 4 points
+        
+        # Walks (3 points)
+        walk_count_state = self.hass.states.get(f"counter.{self._dog_name}_walk_count")
+        walk_count = int(walk_count_state.state) if walk_count_state and walk_count_state.state.isdigit() else 0
+        score += min(walk_count * 1.5, 3)  # Max 3 points
+        
+        # Play time (2 points)
+        play_count_state = self.hass.states.get(f"counter.{self._dog_name}_play_count")
+        play_count = int(play_count_state.state) if play_count_state and play_count_state.state.isdigit() else 0
+        score += min(play_count * 1, 2)  # Max 2 points
+        
+        # Training (1 point)
+        training_count_state = self.hass.states.get(f"counter.{self._dog_name}_training_count")
+        training_count = int(training_count_state.state) if training_count_state and training_count_state.state.isdigit() else 0
+        score += min(training_count * 1, 1)  # Max 1 point
+        
+        return min(score, 10)
+
+    def _calculate_health_score(self) -> float:
+        """Calculate health score (0-10)."""
+        score = 10  # Start with perfect score
+        
+        # Health status
+        health_state = self.hass.states.get(f"input_select.{self._dog_name}_health_status")
+        health_status = health_state.state if health_state else "Gut"
+        
+        health_scores = {
+            "Ausgezeichnet": 10,
+            "Gut": 8,
+            "Normal": 6,
+            "Schwach": 4,
+            "Krank": 2,
+            "Notfall": 0,
+        }
+        score = health_scores.get(health_status, 6)
+        
+        # Emergency mode penalty
+        emergency_state = self.hass.states.get(f"input_boolean.{self._dog_name}_emergency_mode")
+        if emergency_state and emergency_state.state == "on":
+            score = min(score, 2)
+        
+        return score
+
+    def _get_daily_recommendations(self, feeding_score: float, activity_score: float, health_score: float) -> List[str]:
+        """Get recommendations for improving the day."""
+        recommendations = []
+        
+        if feeding_score < 7:
+            recommendations.append("Regelmäßigere Fütterung")
+        
+        if activity_score < 6:
+            recommendations.append("Mehr Bewegung und Aktivität")
+        
+        if health_score < 8:
+            recommendations.append("Gesundheit beobachten")
+        
+        if not recommendations:
+            recommendations.append("Weiter so! Perfekte Pflege!")
+        
+        return recommendations
+
 
 class HundesystemLastActivitySensor(HundesystemSensorBase):
-    """Sensor for last activity timestamp."""
+    """Sensor for last activity tracking."""
 
     def __init__(
         self,
@@ -635,91 +828,92 @@ class HundesystemLastActivitySensor(HundesystemSensorBase):
     ) -> None:
         """Initialize the last activity sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["last_activity"])
-        self._attr_icon = ICONS["notes"]
+        self._attr_icon = ICONS["status"]
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        
+        self._activity_times = [
+            f"input_datetime.{dog_name}_last_outside",
+            f"input_datetime.{dog_name}_last_walk",
+            f"input_datetime.{dog_name}_last_play",
+            f"input_datetime.{dog_name}_last_training",
+            f"input_datetime.{dog_name}_last_feeding_morning",
+            f"input_datetime.{dog_name}_last_feeding_lunch",
+            f"input_datetime.{dog_name}_last_feeding_evening",
+            f"input_datetime.{dog_name}_last_feeding_snack",
+        ]
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Track activity datetime entities
-        activity_entities = [
-            f"input_datetime.{self._dog_name}_last_outside",
-            f"input_datetime.{self._dog_name}_last_walk",
-            f"input_datetime.{self._dog_name}_last_play",
-            f"input_datetime.{self._dog_name}_last_activity",
-        ]
-        self._track_entity_changes(activity_entities, self._activity_tracked)
+        # Track activity time entities
+        self._track_entity_changes(self._activity_times, self._last_activity_changed)
         
         # Initial update
         await self._async_update_last_activity()
 
     @callback
-    def _activity_tracked(self, event) -> None:
-        """Handle activity tracking - CORRECTED."""
-        # Only update if state changed to a valid datetime
-        if (event.data.get("new_state") and 
-            event.data["new_state"].state not in ["unknown", "unavailable"]):
-            self.hass.async_create_task(self._async_update_last_activity(event.data["entity_id"]))
-            self.async_write_ha_state()
+    def _last_activity_changed(self, event) -> None:
+        """Handle last activity changes - CORRECTED."""
+        self.hass.async_create_task(self._async_update_last_activity())
+        self.async_write_ha_state()
 
-    async def _async_update_last_activity(self, triggered_entity: Optional[str] = None) -> None:
+    async def _async_update_last_activity(self) -> None:
         """Update the last activity timestamp."""
         try:
             latest_activity = None
-            latest_activity_type = "Unbekannt"
+            latest_time = None
+            activity_details = {}
             
-            # Check all activity datetime entities
-            activity_types = {
-                f"input_datetime.{self._dog_name}_last_outside": "Draußen",
-                f"input_datetime.{self._dog_name}_last_walk": "Gassi",
-                f"input_datetime.{self._dog_name}_last_play": "Spielen",
-                f"input_datetime.{self._dog_name}_last_activity": "Allgemeine Aktivität",
+            activity_names = {
+                "last_outside": "Draußen",
+                "last_walk": "Spaziergang", 
+                "last_play": "Spielen",
+                "last_training": "Training",
+                "last_feeding_morning": "Frühstück",
+                "last_feeding_lunch": "Mittagessen",
+                "last_feeding_evening": "Abendessen",
+                "last_feeding_snack": "Leckerli",
             }
             
-            for entity_id, activity_name in activity_types.items():
+            for entity_id in self._activity_times:
                 state = self.hass.states.get(entity_id)
                 if state and state.state not in ["unknown", "unavailable"]:
                     try:
                         activity_time = datetime.fromisoformat(state.state.replace("Z", "+00:00"))
-                        if latest_activity is None or activity_time > latest_activity:
-                            latest_activity = activity_time
-                            latest_activity_type = activity_name
-                    except ValueError:
+                        
+                        # Extract activity name from entity id
+                        activity_key = entity_id.split(f"{self._dog_name}_")[1]
+                        activity_name = activity_names.get(activity_key, activity_key)
+                        
+                        activity_details[activity_name] = {
+                            "time": state.state,
+                            "time_ago": self._get_time_ago(activity_time),
+                        }
+                        
+                        if latest_time is None or activity_time > latest_time:
+                            latest_activity = activity_name
+                            latest_time = activity_time
+                            
+                    except ValueError as e:
+                        _LOGGER.debug("Error parsing time for %s: %s", entity_id, e)
                         continue
             
-            if latest_activity:
-                self._attr_native_value = latest_activity.isoformat()
-                
-                # Calculate time since
-                now = dt_util.now()
-                if latest_activity.tzinfo is None:
-                    latest_activity = dt_util.as_local(latest_activity)
-                
-                time_since = now - latest_activity
-                hours_since = time_since.total_seconds() / 3600
-                
-                if hours_since < 1:
-                    time_ago = f"{int(time_since.total_seconds() / 60)} Minuten"
-                elif hours_since < 24:
-                    time_ago = f"{int(hours_since)} Stunden"
-                else:
-                    time_ago = f"{int(hours_since / 24)} Tage"
-                
-                self._attr_extra_state_attributes = {
-                    "activity_type": latest_activity_type,
-                    "time_ago": time_ago,
-                    "hours_since": round(hours_since, 1),
-                    "triggered_by": triggered_entity,
-                    "last_updated": now.isoformat(),
-                }
+            if latest_time:
+                self._attr_native_value = latest_time.isoformat()
+                time_ago = self._get_time_ago(latest_time)
             else:
                 self._attr_native_value = None
-                self._attr_extra_state_attributes = {
-                    "activity_type": "Keine Aktivität aufgezeichnet",
-                    "last_updated": datetime.now().isoformat(),
-                }
-                
+                time_ago = "Keine Aktivität aufgezeichnet"
+            
+            self._attr_extra_state_attributes = {
+                "last_activity_type": latest_activity,
+                "time_ago": time_ago,
+                "all_activities": activity_details,
+                "total_activities_tracked": len(activity_details),
+                "last_updated": datetime.now().isoformat(),
+            }
+            
         except Exception as e:
             _LOGGER.error("Error updating last activity for %s: %s", self._dog_name, e)
             self._attr_native_value = None
@@ -728,314 +922,344 @@ class HundesystemLastActivitySensor(HundesystemSensorBase):
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _get_time_ago(self, activity_time: datetime) -> str:
+        """Get human-readable time ago string."""
+        try:
+            now = datetime.now(activity_time.tzinfo)
+            time_diff = now - activity_time
+            
+            total_seconds = time_diff.total_seconds()
+            
+            if total_seconds < 60:
+                return "vor weniger als 1 Minute"
+            elif total_seconds < 3600:
+                minutes = int(total_seconds / 60)
+                return f"vor {minutes} Minute(n)"
+            elif total_seconds < 86400:
+                hours = int(total_seconds / 3600)
+                return f"vor {hours} Stunde(n)"
+            else:
+                days = int(total_seconds / 86400)
+                return f"vor {days} Tag(en)"
+                
+        except Exception:
+            return "Unbekannt"
+
 
 class HundesystemHealthScoreSensor(HundesystemSensorBase):
     """Sensor for health score calculation."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry, dog_name: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
         """Initialize the health score sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["health_score"])
         self._attr_icon = ICONS["health"]
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = "points"
+        
+        self._health_entities = [
+            f"input_select.{dog_name}_health_status",
+            f"input_select.{dog_name}_mood",
+            f"input_select.{dog_name}_energy_level_category",
+            f"input_select.{dog_name}_appetite_level",
+            f"input_number.{dog_name}_health_score",
+            f"input_boolean.{dog_name}_emergency_mode",
+        ]
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Track health-related entities
-        health_entities = [
-            f"input_select.{self._dog_name}_health_status",
-            f"input_select.{self._dog_name}_mood",
-            f"input_number.{self._dog_name}_temperature",
-            f"input_number.{self._dog_name}_weight",
-            f"input_boolean.{self._dog_name}_medication_given",
-            f"sensor.{self._dog_name}_feeding_status",
-            f"sensor.{self._dog_name}_activity",
-        ]
-        self._track_entity_changes(health_entities, self._health_changed)
-        
-        # Update health score every 30 minutes
-        self._track_time_interval(self._periodic_health_update, timedelta(minutes=30))
+        # Track health entities
+        self._track_entity_changes(self._health_entities, self._health_score_changed)
         
         # Initial update
         await self._async_update_health_score()
 
     @callback
-    def _health_changed(self, event) -> None:
-        """Handle health-related changes - CORRECTED."""
-        self.hass.async_create_task(self._async_update_health_score())
-        self.async_write_ha_state()
-
-    @callback
-    def _periodic_health_update(self, now) -> None:
-        """Periodic health update - CORRECTED."""
+    def _health_score_changed(self, event) -> None:
+        """Handle health score changes - CORRECTED."""
         self.hass.async_create_task(self._async_update_health_score())
         self.async_write_ha_state()
 
     async def _async_update_health_score(self) -> None:
-        """Update the health score based on various factors."""
+        """Update the health score."""
         try:
-            base_score = 10.0  # Start with perfect score
-            factors = {}
+            health_metrics = self._get_health_metrics()
+            calculated_score = self._calculate_comprehensive_health_score(health_metrics)
             
-            # Health status factor (most important)
-            health_state = self.hass.states.get(f"input_select.{self._dog_name}_health_status")
-            health_status = health_state.state if health_state else "Gut"
-            
-            health_multipliers = {
-                "Ausgezeichnet": 1.0,
-                "Gut": 0.9,
-                "Normal": 0.8,
-                "Schwach": 0.6,
-                "Krank": 0.4,
-                "Notfall": 0.1
-            }
-            health_factor = health_multipliers.get(health_status, 0.8)
-            factors["health_status"] = {"value": health_status, "factor": health_factor}
-            
-            # Mood factor
-            mood_state = self.hass.states.get(f"input_select.{self._dog_name}_mood")
-            mood = mood_state.state if mood_state else "Glücklich"
-            
-            mood_multipliers = {
-                "Sehr glücklich": 1.0,
-                "Glücklich": 0.95,
-                "Neutral": 0.85,
-                "Gestresst": 0.7,
-                "Ängstlich": 0.6,
-                "Krank": 0.3
-            }
-            mood_factor = mood_multipliers.get(mood, 0.85)
-            factors["mood"] = {"value": mood, "factor": mood_factor}
-            
-            # Temperature factor
-            temp_state = self.hass.states.get(f"input_number.{self._dog_name}_temperature")
-            if temp_state and temp_state.state not in ["unknown", "unavailable"]:
-                try:
-                    temperature = float(temp_state.state)
-                    # Normal dog temperature: 37.5-39.0°C
-                    if 37.5 <= temperature <= 39.0:
-                        temp_factor = 1.0
-                    elif 37.0 <= temperature < 37.5 or 39.0 < temperature <= 39.5:
-                        temp_factor = 0.9
-                    elif 36.5 <= temperature < 37.0 or 39.5 < temperature <= 40.0:
-                        temp_factor = 0.7
-                    else:
-                        temp_factor = 0.5
-                    factors["temperature"] = {"value": temperature, "factor": temp_factor}
-                except ValueError:
-                    pass
-            
-            # Activity factor
-            activity_sensor = self.hass.states.get(f"sensor.{self._dog_name}_activity")
-            if activity_sensor and activity_sensor.state not in ["unknown", "unavailable"]:
-                try:
-                    activity_count = int(activity_sensor.state)
-                    if activity_count >= 5:
-                        activity_factor = 1.0
-                    elif activity_count >= 3:
-                        activity_factor = 0.9
-                    elif activity_count >= 1:
-                        activity_factor = 0.8
-                    else:
-                        activity_factor = 0.6
-                    factors["activity"] = {"value": activity_count, "factor": activity_factor}
-                except ValueError:
-                    pass
-            
-            # Feeding factor
-            feeding_sensor = self.hass.states.get(f"sensor.{self._dog_name}_feeding_status")
-            if feeding_sensor and feeding_sensor.attributes:
-                urgency = feeding_sensor.attributes.get("urgency", "medium")
-                if urgency == "low":
-                    feeding_factor = 1.0
-                elif urgency == "medium":
-                    feeding_factor = 0.85
-                else:
-                    feeding_factor = 0.7
-                factors["feeding"] = {"value": urgency, "factor": feeding_factor}
-            
-            # Calculate weighted score
-            weights = {
-                "health_status": 0.4,
-                "mood": 0.2,
-                "temperature": 0.15,
-                "activity": 0.15,
-                "feeding": 0.1
-            }
-            
-            calculated_score = base_score
-            for factor_name, factor_data in factors.items():
-                weight = weights.get(factor_name, 0.1)
-                calculated_score *= (1 - weight + weight * factor_data["factor"])
-            
-            # Round to one decimal place
-            final_score = round(calculated_score, 1)
-            
-            self._attr_native_value = final_score
-            
-            # Determine score category
-            if final_score >= 9.0:
-                score_category = "Ausgezeichnet"
-                score_color = "green"
-            elif final_score >= 7.5:
-                score_category = "Gut"
-                score_color = "lightgreen"
-            elif final_score >= 6.0:
-                score_category = "Normal"
-                score_color = "yellow"
-            elif final_score >= 4.0:
-                score_category = "Bedenklich"
-                score_color = "orange"
+            # Determine health status
+            if calculated_score >= 9:
+                status = "Ausgezeichnet"
+                concerns = []
+            elif calculated_score >= 7:
+                status = "Gut"
+                concerns = self._identify_minor_concerns(health_metrics)
+            elif calculated_score >= 5:
+                status = "Durchschnittlich"
+                concerns = self._identify_moderate_concerns(health_metrics)
             else:
-                score_category = "Kritisch"
-                score_color = "red"
+                status = "Bedenklich"
+                concerns = self._identify_major_concerns(health_metrics)
+            
+            self._attr_native_value = calculated_score
             
             self._attr_extra_state_attributes = {
-                "score_category": score_category,
-                "score_color": score_color,
-                "factors": factors,
-                "calculation_method": "weighted_average",
-                "max_score": base_score,
-                "last_updated": datetime.now().isoformat(),
+                "health_status": status,
+                "health_metrics": health_metrics,
+                "concerns": concerns,
+                "recommendations": self._get_health_recommendations(health_metrics, concerns),
+                "last_calculation": datetime.now().isoformat(),
             }
             
         except Exception as e:
             _LOGGER.error("Error updating health score for %s: %s", self._dog_name, e)
-            self._attr_native_value = 5.0  # Default to middle score
+            self._attr_native_value = 0
             self._attr_extra_state_attributes = {
                 "error": str(e),
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _get_health_metrics(self) -> Dict[str, Any]:
+        """Get all health-related metrics."""
+        metrics = {}
+        
+        # Health status
+        health_state = self.hass.states.get(f"input_select.{self._dog_name}_health_status")
+        metrics["health_status"] = health_state.state if health_state else "Gut"
+        
+        # Mood
+        mood_state = self.hass.states.get(f"input_select.{self._dog_name}_mood")
+        metrics["mood"] = mood_state.state if mood_state else "Glücklich"
+        
+        # Energy level
+        energy_state = self.hass.states.get(f"input_select.{self._dog_name}_energy_level_category")
+        metrics["energy_level"] = energy_state.state if energy_state else "Normal"
+        
+        # Appetite
+        appetite_state = self.hass.states.get(f"input_select.{self._dog_name}_appetite_level")
+        metrics["appetite"] = appetite_state.state if appetite_state else "Normal"
+        
+        # Manual health score
+        health_score_state = self.hass.states.get(f"input_number.{self._dog_name}_health_score")
+        if health_score_state and health_score_state.state not in ["unknown", "unavailable"]:
+            try:
+                metrics["manual_score"] = float(health_score_state.state)
+            except ValueError:
+                metrics["manual_score"] = None
+        else:
+            metrics["manual_score"] = None
+        
+        # Emergency mode
+        emergency_state = self.hass.states.get(f"input_boolean.{self._dog_name}_emergency_mode")
+        metrics["emergency_mode"] = emergency_state.state == "on" if emergency_state else False
+        
+        return metrics
+
+    def _calculate_comprehensive_health_score(self, metrics: Dict[str, Any]) -> float:
+        """Calculate comprehensive health score."""
+        if metrics.get("emergency_mode", False):
+            return 0.0
+        
+        # Start with manual score if available
+        if metrics.get("manual_score") is not None:
+            base_score = metrics["manual_score"]
+        else:
+            # Calculate based on status indicators
+            status_scores = {
+                "Ausgezeichnet": 10,
+                "Gut": 8,
+                "Normal": 6,
+                "Schwach": 4,
+                "Krank": 2,
+                "Notfall": 0,
+            }
+            base_score = status_scores.get(metrics.get("health_status", "Gut"), 6)
+        
+        # Adjust based on mood
+        mood_adjustments = {
+            "Sehr glücklich": 1.0,
+            "Glücklich": 0.5,
+            "Neutral": 0.0,
+            "Gestresst": -1.0,
+            "Ängstlich": -1.5,
+            "Krank": -3.0,
+        }
+        base_score += mood_adjustments.get(metrics.get("mood", "Glücklich"), 0)
+        
+        # Adjust based on energy level
+        energy_adjustments = {
+            "Hyperaktiv": -0.5,  # Might indicate stress
+            "Energiegeladen": 0.5,
+            "Normal": 0.0,
+            "Müde": -0.5,
+            "Sehr müde": -1.5,
+        }
+        base_score += energy_adjustments.get(metrics.get("energy_level", "Normal"), 0)
+        
+        # Adjust based on appetite
+        appetite_adjustments = {
+            "Sehr hungrig": 0.0,  # Normal for healthy dogs
+            "Guter Appetit": 0.5,
+            "Normal": 0.0,
+            "Wenig Appetit": -1.0,
+            "Kein Appetit": -2.0,
+        }
+        base_score += appetite_adjustments.get(metrics.get("appetite", "Normal"), 0)
+        
+        return max(0.0, min(10.0, base_score))
+
+    def _identify_minor_concerns(self, metrics: Dict[str, Any]) -> List[str]:
+        """Identify minor health concerns."""
+        concerns = []
+        
+        if metrics.get("energy_level") in ["Müde", "Sehr müde"]:
+            concerns.append("Niedrige Energie")
+        
+        if metrics.get("mood") == "Gestresst":
+            concerns.append("Leichter Stress")
+        
+        if metrics.get("appetite") == "Wenig Appetit":
+            concerns.append("Reduzierter Appetit")
+        
+        return concerns
+
+    def _identify_moderate_concerns(self, metrics: Dict[str, Any]) -> List[str]:
+        """Identify moderate health concerns."""
+        concerns = []
+        
+        if metrics.get("health_status") in ["Normal", "Schwach"]:
+            concerns.append("Gesundheitsstatus unter optimal")
+        
+        if metrics.get("mood") == "Ängstlich":
+            concerns.append("Anzeichen von Angst")
+        
+        if metrics.get("appetite") == "Kein Appetit":
+            concerns.append("Appetitlosigkeit")
+        
+        if metrics.get("energy_level") == "Sehr müde":
+            concerns.append("Extreme Müdigkeit")
+        
+        return concerns
+
+    def _identify_major_concerns(self, metrics: Dict[str, Any]) -> List[str]:
+        """Identify major health concerns."""
+        concerns = []
+        
+        if metrics.get("health_status") in ["Krank", "Notfall"]:
+            concerns.append("Ernste Gesundheitsprobleme")
+        
+        if metrics.get("mood") == "Krank":
+            concerns.append("Krankheitsanzeichen")
+        
+        if metrics.get("emergency_mode", False):
+            concerns.append("Notfallsituation")
+        
+        return concerns
+
+    def _get_health_recommendations(self, metrics: Dict[str, Any], concerns: List[str]) -> List[str]:
+        """Get health recommendations based on metrics and concerns."""
+        recommendations = []
+        
+        if "Niedrige Energie" in concerns:
+            recommendations.append("Mehr Ruhe und sanfte Aktivitäten")
+        
+        if "Leichter Stress" in concerns or "Anzeichen von Angst" in concerns:
+            recommendations.append("Stressreduktion und beruhigende Umgebung")
+        
+        if "Reduzierter Appetit" in concerns or "Appetitlosigkeit" in concerns:
+            recommendations.append("Tierarzt konsultieren für Appetitprobleme")
+        
+        if "Ernste Gesundheitsprobleme" in concerns:
+            recommendations.append("Sofortige tierärztliche Behandlung erforderlich")
+        
+        if "Notfallsituation" in concerns:
+            recommendations.append("Notfall-Tierarzt kontaktieren")
+        
+        if not concerns:
+            recommendations.append("Weiterhin gute Pflege beibehalten")
+        
+        return recommendations
+
 
 class HundesystemMoodSensor(HundesystemSensorBase):
-    """Sensor for mood tracking and analysis."""
+    """Sensor for mood tracking."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry, dog_name: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
         """Initialize the mood sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["mood"])
         self._attr_icon = ICONS["happy"]
+        
+        self._mood_entities = [
+            f"input_select.{dog_name}_mood",
+            f"input_select.{dog_name}_energy_level_category",
+            f"input_boolean.{dog_name}_feeling_well",
+            f"input_boolean.{dog_name}_played_today",
+            f"input_boolean.{dog_name}_socialized_today",
+        ]
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Track mood-related entities
-        mood_entities = [
-            f"input_select.{self._dog_name}_mood",
-            f"input_select.{self._dog_name}_health_status",
-            f"sensor.{self._dog_name}_activity",
-            f"input_boolean.{self._dog_name}_visitor_mode_input",
-            f"input_boolean.{self._dog_name}_emergency_mode",
-        ]
-        self._track_entity_changes(mood_entities, self._mood_changed)
+        # Track mood entities
+        self._track_entity_changes(self._mood_entities, self._mood_changed)
         
         # Initial update
         await self._async_update_mood()
 
     @callback
     def _mood_changed(self, event) -> None:
-        """Handle mood-related changes - CORRECTED."""
+        """Handle mood changes - CORRECTED."""
         self.hass.async_create_task(self._async_update_mood())
         self.async_write_ha_state()
 
     async def _async_update_mood(self) -> None:
-        """Update the mood sensor with analysis."""
+        """Update the mood status."""
         try:
-            # Get base mood
+            # Get primary mood
             mood_state = self.hass.states.get(f"input_select.{self._dog_name}_mood")
-            base_mood = mood_state.state if mood_state else "Glücklich"
+            primary_mood = mood_state.state if mood_state else "Glücklich"
             
-            # Get influencing factors
-            health_state = self.hass.states.get(f"input_select.{self._dog_name}_health_status")
-            health_status = health_state.state if health_state else "Gut"
+            # Get supporting indicators
+            energy_state = self.hass.states.get(f"input_select.{self._dog_name}_energy_level_category")
+            energy_level = energy_state.state if energy_state else "Normal"
             
-            emergency_state = self.hass.states.get(f"input_boolean.{self._dog_name}_emergency_mode")
-            emergency_mode = emergency_state.state == "on" if emergency_state else False
+            feeling_well_state = self.hass.states.get(f"input_boolean.{self._dog_name}_feeling_well")
+            feeling_well = feeling_well_state.state == "on" if feeling_well_state else True
             
-            visitor_state = self.hass.states.get(f"input_boolean.{self._dog_name}_visitor_mode_input")
-            visitor_mode = visitor_state.state == "on" if visitor_state else False
+            played_state = self.hass.states.get(f"input_boolean.{self._dog_name}_played_today")
+            played_today = played_state.state == "on" if played_state else False
             
-            # Get activity level
-            activity_sensor = self.hass.states.get(f"sensor.{self._dog_name}_activity")
-            activity_count = 0
-            if activity_sensor and activity_sensor.state not in ["unknown", "unavailable"]:
-                try:
-                    activity_count = int(activity_sensor.state)
-                except ValueError:
-                    pass
+            socialized_state = self.hass.states.get(f"input_boolean.{self._dog_name}_socialized_today")
+            socialized_today = socialized_state.state == "on" if socialized_state else False
             
-            # Analyze mood influences
-            mood_influences = []
-            adjusted_mood = base_mood
+            # Calculate mood score (0-10)
+            mood_score = self._calculate_mood_score(primary_mood, energy_level, feeling_well, played_today, socialized_today)
             
-            if emergency_mode:
-                adjusted_mood = "Notfall/Gestresst"
-                mood_influences.append("Notfallmodus aktiv")
-                
-            elif health_status in ["Krank", "Notfall"]:
-                if base_mood not in ["Krank", "Ängstlich"]:
-                    adjusted_mood = "Krank"
-                mood_influences.append(f"Gesundheit: {health_status}")
-                
-            elif health_status == "Schwach":
-                if base_mood in ["Sehr glücklich", "Glücklich"]:
-                    adjusted_mood = "Neutral"
-                mood_influences.append("Gesundheit schwach")
-                
-            elif activity_count == 0:
-                if base_mood in ["Sehr glücklich", "Glücklich"]:
-                    adjusted_mood = "Gelangweilt"
-                mood_influences.append("Keine Aktivität heute")
-                
-            elif activity_count >= 5:
-                if base_mood in ["Neutral", "Gestresst"]:
-                    adjusted_mood = "Glücklich"
-                mood_influences.append("Sehr aktiv")
+            # Determine mood description and icon
+            mood_description, mood_icon = self._get_mood_description_and_icon(primary_mood, mood_score)
             
-            if visitor_mode:
-                mood_influences.append("Besuchsmodus")
-            
-            # Set icon based on mood
-            mood_icons = {
-                "Sehr glücklich": "mdi:emoticon-excited",
-                "Glücklich": "mdi:emoticon-happy",
-                "Neutral": "mdi:emoticon-neutral",
-                "Gelangweilt": "mdi:emoticon-sad",
-                "Gestresst": "mdi:emoticon-confused",
-                "Ängstlich": "mdi:emoticon-cry",
-                "Krank": "mdi:emoticon-sick",
-                "Notfall/Gestresst": "mdi:alert-circle"
-            }
-            self._attr_icon = mood_icons.get(adjusted_mood, ICONS["happy"])
-            
-            self._attr_native_value = adjusted_mood
-            
-            # Mood recommendations
-            recommendations = []
-            if adjusted_mood in ["Gestresst", "Ängstlich"]:
-                recommendations.append("Ruhige Umgebung schaffen")
-                recommendations.append("Entspannungsübungen")
-            elif adjusted_mood == "Gelangweilt":
-                recommendations.append("Mehr Spielzeit")
-                recommendations.append("Neue Aktivitäten einführen")
-            elif adjusted_mood == "Krank":
-                recommendations.append("Tierarzt konsultieren")
-                recommendations.append("Ruhe und Beobachtung")
-            elif adjusted_mood == "Sehr glücklich":
-                recommendations.append("Aktivitätslevel beibehalten")
+            self._attr_native_value = primary_mood
+            self._attr_icon = mood_icon
             
             self._attr_extra_state_attributes = {
-                "base_mood": base_mood,
-                "adjusted_mood": adjusted_mood,
-                "influences": mood_influences,
-                "recommendations": recommendations,
-                "health_status": health_status,
-                "activity_count": activity_count,
-                "visitor_mode": visitor_mode,
-                "emergency_mode": emergency_mode,
+                "mood_score": mood_score,
+                "mood_description": mood_description,
+                "energy_level": energy_level,
+                "feeling_well": feeling_well,
+                "played_today": played_today,
+                "socialized_today": socialized_today,
+                "mood_factors": self._analyze_mood_factors(primary_mood, energy_level, feeling_well, played_today, socialized_today),
                 "last_updated": datetime.now().isoformat(),
             }
             
@@ -1047,99 +1271,238 @@ class HundesystemMoodSensor(HundesystemSensorBase):
                 "last_updated": datetime.now().isoformat(),
             }
 
+    def _calculate_mood_score(self, mood: str, energy: str, feeling_well: bool, played: bool, socialized: bool) -> float:
+        """Calculate numeric mood score."""
+        mood_scores = {
+            "Sehr glücklich": 10,
+            "Glücklich": 8,
+            "Neutral": 6,
+            "Gestresst": 4,
+            "Ängstlich": 2,
+            "Krank": 1,
+        }
+        
+        base_score = mood_scores.get(mood, 6)
+        
+        # Adjust based on other factors
+        if not feeling_well:
+            base_score -= 2
+        
+        if played:
+            base_score += 0.5
+        
+        if socialized:
+            base_score += 0.5
+        
+        # Energy level adjustments
+        energy_adjustments = {
+            "Hyperaktiv": -0.5,
+            "Energiegeladen": 0.5,
+            "Normal": 0,
+            "Müde": -0.5,
+            "Sehr müde": -1,
+        }
+        base_score += energy_adjustments.get(energy, 0)
+        
+        return max(0, min(10, base_score))
+
+    def _get_mood_description_and_icon(self, primary_mood: str, score: float) -> tuple:
+        """Get mood description and appropriate icon."""
+        if score >= 9:
+            return "Fantastische Stimmung", ICONS["happy"]
+        elif score >= 7:
+            return "Gute Stimmung", ICONS["dog"]
+        elif score >= 5:
+            return "Durchschnittliche Stimmung", ICONS["status"]
+        elif score >= 3:
+            return "Schlechte Stimmung", ICONS["attention"]
+        else:
+            return "Sehr schlechte Stimmung", ICONS["emergency"]
+
+    def _analyze_mood_factors(self, mood: str, energy: str, feeling_well: bool, played: bool, socialized: bool) -> Dict[str, Any]:
+        """Analyze factors affecting mood."""
+        positive_factors = []
+        negative_factors = []
+        
+        if mood in ["Sehr glücklich", "Glücklich"]:
+            positive_factors.append("Positive Grundstimmung")
+        elif mood in ["Gestresst", "Ängstlich", "Krank"]:
+            negative_factors.append(f"Beeinträchtigte Stimmung: {mood}")
+        
+        if feeling_well:
+            positive_factors.append("Fühlt sich wohl")
+        else:
+            negative_factors.append("Fühlt sich nicht wohl")
+        
+        if played:
+            positive_factors.append("Hat heute gespielt")
+        else:
+            negative_factors.append("Hat heute noch nicht gespielt")
+        
+        if socialized:
+            positive_factors.append("Sozialer Kontakt heute")
+        else:
+            negative_factors.append("Kein sozialer Kontakt heute")
+        
+        if energy in ["Energiegeladen", "Normal"]:
+            positive_factors.append(f"Gutes Energielevel: {energy}")
+        else:
+            negative_factors.append(f"Niedriges Energielevel: {energy}")
+        
+        return {
+            "positive_factors": positive_factors,
+            "negative_factors": negative_factors,
+            "overall_assessment": "Positiv" if len(positive_factors) > len(negative_factors) else "Verbesserungswürdig"
+        }
+
 
 class HundesystemWeeklySummarySensor(HundesystemSensorBase):
     """Sensor for weekly summary and trends."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry, dog_name: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        dog_name: str,
+    ) -> None:
         """Initialize the weekly summary sensor."""
         super().__init__(hass, config_entry, dog_name, ENTITIES["weekly_summary"])
         self._attr_icon = ICONS["status"]
+        self._attr_native_unit_of_measurement = "score"
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         
-        # Update weekly summary once daily at midnight
-        self._track_time_interval(self._daily_summary_update, timedelta(hours=24))
+        # Update daily at midnight
+        self._track_time_interval(self._daily_summary_update, timedelta(days=1))
         
         # Initial update
         await self._async_update_weekly_summary()
 
     @callback
-    def _daily_summary_update(self, now) -> None:
+    def _daily_summary_update(self, time) -> None:
         """Daily summary update - CORRECTED."""
-        # Only update if it's close to midnight (within 1 hour)
-        if now.hour == 0:
-            self.hass.async_create_task(self._async_update_weekly_summary())
-            self.async_write_ha_state()
+        self.hass.async_create_task(self._async_update_weekly_summary())
 
     async def _async_update_weekly_summary(self) -> None:
-        """Update the weekly summary with trends."""
+        """Update the weekly summary."""
         try:
-            now = datetime.now()
-            week_start = now - timedelta(days=now.weekday())
+            # Get daily summary sensor for trend analysis
+            daily_sensor = self.hass.states.get(f"sensor.{self._dog_name}_daily_summary")
+            current_daily_score = float(daily_sensor.state) if daily_sensor and daily_sensor.state.replace('.', '').isdigit() else 0
             
-            # Create summary text
-            summary_text = f"Woche vom {week_start.strftime('%d.%m')} - {now.strftime('%d.%m')}"
+            # Calculate weekly metrics (simplified for demo)
+            weekly_metrics = {
+                "average_daily_score": current_daily_score,  # In real implementation, would track 7 days
+                "feeding_consistency": self._calculate_feeding_consistency(),
+                "activity_trend": self._calculate_activity_trend(),
+                "health_trend": self._calculate_health_trend(),
+            }
             
-            # Get current week statistics (simplified as we don't have historical data)
-            current_stats = {}
+            # Calculate overall weekly score
+            weekly_score = self._calculate_weekly_score(weekly_metrics)
             
-            # Get current counters as week summary
-            counter_entities = [
-                f"counter.{self._dog_name}_feeding_morning_count",
-                f"counter.{self._dog_name}_feeding_lunch_count",
-                f"counter.{self._dog_name}_feeding_evening_count",
-                f"counter.{self._dog_name}_outside_count",
-                f"counter.{self._dog_name}_walk_count",
-                f"counter.{self._dog_name}_play_count",
-            ]
+            # Generate weekly assessment
+            assessment = self._generate_weekly_assessment(weekly_score, weekly_metrics)
             
-            for entity_id in counter_entities:
-                state = self.hass.states.get(entity_id)
-                if state and state.state.isdigit():
-                    counter_name = entity_id.split("_")[-2]  # Extract activity type
-                    current_stats[counter_name] = int(state.state)
-            
-            # Calculate totals
-            total_feedings = sum(current_stats.get(meal, 0) for meal in ["morning", "lunch", "evening"])
-            total_activities = sum(current_stats.get(activity, 0) for activity in ["outside", "walk", "play"])
-            
-            # Weekly assessment
-            if total_feedings >= 18:  # 3 meals * 6 days (assuming some flexibility)
-                feeding_assessment = "Ausgezeichnet"
-            elif total_feedings >= 12:
-                feeding_assessment = "Gut"
-            else:
-                feeding_assessment = "Verbesserungsbedarf"
-            
-            if total_activities >= 14:  # 2 activities per day
-                activity_assessment = "Sehr aktiv"
-            elif total_activities >= 7:
-                activity_assessment = "Aktiv"
-            else:
-                activity_assessment = "Mehr Bewegung nötig"
-            
-            self._attr_native_value = summary_text
+            self._attr_native_value = weekly_score
             
             self._attr_extra_state_attributes = {
-                "week_start": week_start.isoformat(),
-                "week_end": now.isoformat(),
-                "days_in_week": now.weekday() + 1,
-                "current_stats": current_stats,
-                "total_feedings": total_feedings,
-                "total_activities": total_activities,
-                "feeding_assessment": feeding_assessment,
-                "activity_assessment": activity_assessment,
-                "note": "Basiert auf aktuellen Tagesstatistiken",
-                "last_updated": now.isoformat(),
+                "weekly_score": weekly_score,
+                "weekly_assessment": assessment,
+                "metrics": weekly_metrics,
+                "recommendations": self._get_weekly_recommendations(weekly_metrics),
+                "week_start": (datetime.now() - timedelta(days=datetime.now().weekday())).date().isoformat(),
+                "last_updated": datetime.now().isoformat(),
             }
             
         except Exception as e:
             _LOGGER.error("Error updating weekly summary for %s: %s", self._dog_name, e)
-            self._attr_native_value = "Fehler bei Wochenzusammenfassung"
+            self._attr_native_value = 0
             self._attr_extra_state_attributes = {
                 "error": str(e),
                 "last_updated": datetime.now().isoformat(),
             }
+
+    def _calculate_feeding_consistency(self) -> float:
+        """Calculate feeding consistency score."""
+        # Simplified - in real implementation would track daily patterns
+        feeding_entities = [f"input_boolean.{self._dog_name}_feeding_{meal}" for meal in FEEDING_TYPES]
+        
+        fed_count = 0
+        total_count = len(feeding_entities)
+        
+        for entity_id in feeding_entities:
+            state = self.hass.states.get(entity_id)
+            if state and state.state == "on":
+                fed_count += 1
+        
+        return (fed_count / total_count) * 10 if total_count > 0 else 0
+
+    def _calculate_activity_trend(self) -> str:
+        """Calculate activity trend."""
+        # Simplified trend calculation
+        activity_sensor = self.hass.states.get(f"sensor.{self._dog_name}_activity")
+        current_activities = int(activity_sensor.state) if activity_sensor and activity_sensor.state.isdigit() else 0
+        
+        if current_activities >= 8:
+            return "Steigend"
+        elif current_activities >= 4:
+            return "Stabil"
+        else:
+            return "Sinkend"
+
+    def _calculate_health_trend(self) -> str:
+        """Calculate health trend."""
+        health_sensor = self.hass.states.get(f"sensor.{self._dog_name}_health_score")
+        current_health = float(health_sensor.state) if health_sensor and health_sensor.state.replace('.', '').isdigit() else 5
+        
+        if current_health >= 8:
+            return "Ausgezeichnet"
+        elif current_health >= 6:
+            return "Gut"
+        else:
+            return "Verbesserungswürdig"
+
+    def _calculate_weekly_score(self, metrics: Dict[str, Any]) -> float:
+        """Calculate overall weekly score."""
+        daily_score = metrics.get("average_daily_score", 0)
+        feeding_score = metrics.get("feeding_consistency", 0)
+        
+        # Weight the scores
+        weighted_score = (daily_score * 0.6) + (feeding_score * 0.4)
+        
+        return round(weighted_score, 1)
+
+    def _generate_weekly_assessment(self, score: float, metrics: Dict[str, Any]) -> str:
+        """Generate weekly assessment text."""
+        if score >= 8.5:
+            return "Ausgezeichnete Woche! Alle Aspekte der Hundepflege sind optimal."
+        elif score >= 7:
+            return "Gute Woche mit konstanter Pflege und Aufmerksamkeit."
+        elif score >= 5:
+            return "Durchschnittliche Woche, einige Bereiche könnten verbessert werden."
+        else:
+            return "Herausfordernde Woche, mehr Aufmerksamkeit für Grundbedürfnisse nötig."
+
+    def _get_weekly_recommendations(self, metrics: Dict[str, Any]) -> List[str]:
+        """Get weekly recommendations."""
+        recommendations = []
+        
+        feeding_consistency = metrics.get("feeding_consistency", 0)
+        if feeding_consistency < 8:
+            recommendations.append("Regelmäßigere Fütterungszeiten etablieren")
+        
+        activity_trend = metrics.get("activity_trend", "")
+        if activity_trend == "Sinkend":
+            recommendations.append("Mehr tägliche Aktivitäten einplanen")
+        
+        health_trend = metrics.get("health_trend", "")
+        if health_trend == "Verbesserungswürdig":
+            recommendations.append("Gesundheitsstatus genauer beobachten")
+        
+        if not recommendations:
+            recommendations.append("Weiterhin exzellente Pflege!")
+        
+        return recommendations
