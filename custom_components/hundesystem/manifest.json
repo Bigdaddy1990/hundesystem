@@ -1,21 +1,43 @@
 {
   "domain": "hundesystem",
-  "name": "Hundesystem", 
-  "version": "2.0.2",
-  "documentation": "https://github.com/Bigdaddy1990/hundesystem",
-  "issue_tracker": "https://github.com/Bigdaddy1990/hundesystem/issues",
-  "dependencies": [],
-  "codeowners": ["@Bigdaddy1990"],
-  "requirements": [],
-  "config_flow": true,
-  "iot_class": "local_polling",
-  "integration_type": "service",
-  "after_dependencies": [
-    "input_boolean", "counter", "input_datetime", 
-    "input_text", "input_number", "input_select", 
-    "notify", "person"
+  "name": "Hundesystem",
+  "codeowners": [
+    "@hundesystem-team"
   ],
-  "quality_scale": "silver",
-  "homeassistant": "2024.1.0",
-  "loggers": ["custom_components.hundesystem"]
+  "config_flow": true,
+  "dependencies": [
+    "input_boolean",
+    "input_datetime", 
+    "input_number",
+    "input_select",
+    "input_text",
+    "counter",
+    "automation",
+    "script",
+    "template",
+    "persistent_notification"
+  ],
+  "documentation": "https://github.com/hundesystem/ha-hundesystem",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/hundesystem/ha-hundesystem/issues",
+  "loggers": [
+    "custom_components.hundesystem"
+  ],
+  "requirements": [],
+  "ssdp": [],
+  "version": "2.0.3",
+  "homekit": {},
+  "zeroconf": [],
+  "dhcp": [],
+  "usb": [],
+  "after_dependencies": [
+    "input_boolean",
+    "input_datetime",
+    "input_number", 
+    "input_select",
+    "input_text",
+    "counter"
+  ],
+  "quality_scale": "silver"
 }
