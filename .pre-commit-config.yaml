@@ -1,40 +1,165 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 24.1.0
     hooks:
       - id: black
         language_version: python3.11
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-yaml
+        args: ['--safe']
       - id: check-added-large-files
+        args: ['--maxkb=1024']
       - id: requirements-txt-fixer
+      - id: check-merge-conflict
+      - id: check-json
+      - id: pretty-format-json
+        args: ['--autofix']
+      - id: check-toml
+      - id: check-xml
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.0
     hooks:
       - id: isort
         name: Sort imports
         language_version: python3.11
+        args: ["--profile", "black"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests]
+        additional_dependencies: [types-requests, types-PyYAML]
+        args: [--ignore-missing-imports, --no-strict-optional]
 
-  - repo: https://github.com/pre-commit/mirrors-flake8
-    rev: v6.1.0
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
     hooks:
       - id: flake8
-        additional_dependencies: [flake8-docstrings]
+        additional_dependencies: [
+          flake8-docstrings,
+          flake8-bugbear,
+          flake8-comprehensions,
+          flake8-simplify,
+          flake8-type-checking,
+          flake8-unused-arguments,
+          flake8-use-pathlib
+        ]
+        args: [
+          "--max-line-length=88",
+          "--extend-ignore=E203,W503,D100,D101,D102,D103,D104,D105,D106,D107",
+          "--per-file-ignores=__init__.py:F401"
+        ]
 
   - repo: https://github.com/pre-commit/prettier
-    rev: v3.0.0
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         files: \.(json|md|yml|yaml)$
+        exclude: ^(custom_components/.*/manifest\.json|\.vscode/)
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        args: [
+          "--skip=*.git,*.json,*.lock",
+          "--ignore-words-list=hass,assertin,noe"
+        ]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: [--py311-plus]
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.2.1
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: v2.0.4
+    hooks:
+      - id: autopep8
+
+  - repo: local
+    hooks:
+      - id: hacs-validate
+        name: HACS Validation
+        entry: python3 -c "
+          import json, sys;
+          try:
+              with open('hacs.json') as f: 
+                  data = json.load(f);
+                  required = ['name', 'domains'];
+                  missing = [k for k in required if k not in data];
+                  if missing: 
+                      print(f'Missing required keys in hacs.json: {missing}'); 
+                      sys.exit(1);
+                  print('✅ hacs.json is valid');
+              except Exception as e: 
+                  print(f'❌ hacs.json validation failed: {e}'); 
+                  sys.exit(1)"
+        language: system
+        files: ^hacs\.json$
+        
+      - id: manifest-validate
+        name: Manifest Validation
+        entry: python3 -c "
+          import json, sys;
+          try:
+              with open('custom_components/hundesystem/manifest.json') as f:
+                  data = json.load(f);
+                  required = ['domain', 'name', 'documentation', 'dependencies', 'version'];
+                  missing = [k for k in required if k not in data];
+                  if missing:
+                      print(f'Missing required keys in manifest.json: {missing}');
+                      sys.exit(1);
+                  if not data.get('version', '').startswith(('0.', '1.', '2.')):
+                      print('❌ Invalid version format in manifest.json');
+                      sys.exit(1);
+                  print('✅ manifest.json is valid');
+              except Exception as e:
+                  print(f'❌ manifest.json validation failed: {e}');
+                  sys.exit(1)"
+        language: system
+        files: ^custom_components/.*/manifest\.json$
+        
+      - id: strings-validate
+        name: Strings JSON Validation
+        entry: python3 -c "
+          import json, sys;
+          try:
+              with open('custom_components/hundesystem/strings.json') as f:
+                  data = json.load(f);
+                  if 'config' not in data:
+                      print('❌ Missing config section in strings.json');
+                      sys.exit(1);
+                  print('✅ strings.json is valid');
+              except FileNotFoundError:
+                  print('❌ strings.json not found');
+                  sys.exit(1);
+              except Exception as e:
+                  print(f'❌ strings.json validation failed: {e}');
+                  sys.exit(1)"
+        language: system
+        files: ^custom_components/.*/strings\.json$
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+    
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
