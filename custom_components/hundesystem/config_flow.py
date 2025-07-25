@@ -1,18 +1,18 @@
-"""Config flow for Hundesystem integration."""
+"""Config flow for Hundesystem integration - FIXED IMPORTS."""
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.selector import selector
+from homeassistant.helpers.selector import selector  # FIXED IMPORT
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .const import (
     DOMAIN,
@@ -21,25 +21,69 @@ from .const import (
     CONF_PERSON_TRACKING,
     CONF_CREATE_DASHBOARD,
     CONF_DOOR_SENSOR,
-    CONF_FEEDING_TIMES,
-    CONF_RESET_TIME,
     DEFAULT_DOG_NAME,
-    DEFAULT_CREATE_DASHBOARD,
     DEFAULT_PERSON_TRACKING,
-    DEFAULT_RESET_TIME,
-    DEFAULT_FEEDING_TIMES,
-    DOG_NAME_PATTERN,
-    MAX_DOGS,
+    DEFAULT_CREATE_DASHBOARD,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class CannotConnect(Exception):
+    """Error to indicate we cannot connect."""
+
+
+class InvalidDogName(Exception):
+    """Error to indicate there is invalid dog name."""
+
+
+class AlreadyConfigured(Exception):
+    """Error to indicate dog is already configured."""
+
+
+class TooManyDogs(Exception):
+    """Error to indicate too many dogs are configured."""
+
+
+async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    """Validate the user input allows us to connect.
+    
+    Data has the keys from DATA_SCHEMA with values provided by the user.
+    """
+    dog_name = data[CONF_DOG_NAME].strip().lower()
+    
+    # Validate dog name
+    if not dog_name or len(dog_name) < 2:
+        raise InvalidDogName
+    
+    if not dog_name.replace('_', '').replace('-', '').isalnum():
+        raise InvalidDogName
+    
+    # Check if already configured
+    existing_entries = hass.config_entries.async_entries(DOMAIN)
+    if len(existing_entries) >= 5:  # Max 5 dogs
+        raise TooManyDogs
+    
+    for entry in existing_entries:
+        if entry.data.get(CONF_DOG_NAME, "").lower() == dog_name:
+            raise AlreadyConfigured
+
+    # Return info that you want to store in the config entry.
+    return {
+        CONF_DOG_NAME: dog_name,
+        CONF_PUSH_DEVICES: data.get(CONF_PUSH_DEVICES, []),
+        CONF_PERSON_TRACKING: data.get(CONF_PERSON_TRACKING, DEFAULT_PERSON_TRACKING),
+        CONF_CREATE_DASHBOARD: data.get(CONF_CREATE_DASHBOARD, DEFAULT_CREATE_DASHBOARD),
+        CONF_DOOR_SENSOR: data.get(CONF_DOOR_SENSOR, ""),
+    }
+
+
+@config_entries.HANDLERS.register(DOMAIN)
+class HundesystemConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hundesystem."""
 
     VERSION = 1
-    
+
     def __init__(self):
         """Initialize the config flow."""
         self._errors = {}
@@ -53,7 +97,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                info = await self._validate_input(user_input)
+                info = await validate_input(self.hass, user_input)
                 
                 # Set unique ID to prevent duplicates
                 await self.async_set_unique_id(info[CONF_DOG_NAME])
@@ -109,316 +153,146 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # Validate advanced settings
-                await self._validate_advanced_input(user_input)
+                # Validate door sensor if provided
+                door_sensor = user_input.get(CONF_DOOR_SENSOR, "")
+                if door_sensor:
+                    # Check if entity exists
+                    entity_registry = async_get_entity_registry(self.hass)
+                    if not entity_registry.async_get(door_sensor):
+                        state = self.hass.states.get(door_sensor)
+                        if not state:
+                            errors["door_sensor"] = "entity_not_found"
                 
-                # Merge with basic data
-                self._data.update(user_input)
-                return await self.async_step_feeding_schedule()
-                
-            except InvalidSensor:
-                errors["door_sensor"] = "invalid_sensor"
+                if not errors:
+                    # Update data and create entry
+                    self._data.update(user_input)
+                    
+                    return self.async_create_entry(
+                        title=f"Hundesystem - {self._data[CONF_DOG_NAME].title()}",
+                        data=self._data
+                    )
+                    
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception in advanced step")
                 errors["base"] = "unknown"
 
-        # Get available binary sensors for door detection
+        # Get door sensors
         door_sensors = await self._get_door_sensors()
 
-        data_schema = vol.Schema({
-            vol.Optional(CONF_DOOR_SENSOR): selector({
+        advanced_schema = vol.Schema({
+            vol.Optional(CONF_DOOR_SENSOR, default=""): selector({
                 "entity": {
-                    "filter": {
-                        "domain": "binary_sensor"
-                    }
+                    "domain": "binary_sensor",
+                    "device_class": "door"
                 }
-            }),
-            vol.Optional(CONF_RESET_TIME, default=DEFAULT_RESET_TIME): selector({
-                "time": {}
-            }),
-            vol.Optional("enable_health_monitoring", default=True): cv.boolean,
-            vol.Optional("enable_weather_integration", default=False): cv.boolean,
-            vol.Optional("enable_visitor_mode", default=True): cv.boolean,
-            vol.Optional("enable_emergency_features", default=True): cv.boolean,
+            }) if door_sensors else cv.string,
         })
 
         return self.async_show_form(
             step_id="advanced",
-            data_schema=data_schema,
+            data_schema=advanced_schema,
             errors=errors,
             description_placeholders={
-                "door_sensors_count": str(len(door_sensors))
+                "door_sensor_info": "Optional: Türsensor für automatische Erkennung"
             }
         )
 
-    async def async_step_feeding_schedule(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle feeding schedule configuration."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            try:
-                # Validate feeding times
-                await self._validate_feeding_times(user_input)
-                
-                # Merge with existing data
-                self._data.update(user_input)
-                return await self.async_step_contacts()
-                
-            except InvalidTime:
-                errors["base"] = "invalid_feeding_times"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception in feeding schedule step")
-                errors["base"] = "unknown"
-
-        data_schema = vol.Schema({
-            vol.Optional("morning_time", default=DEFAULT_FEEDING_TIMES["morning"]): selector({
-                "time": {}
-            }),
-            vol.Optional("lunch_time", default=DEFAULT_FEEDING_TIMES["lunch"]): selector({
-                "time": {}
-            }),
-            vol.Optional("evening_time", default=DEFAULT_FEEDING_TIMES["evening"]): selector({
-                "time": {}
-            }),
-            vol.Optional("snack_time", default=DEFAULT_FEEDING_TIMES["snack"]): selector({
-                "time": {}
-            }),
-            vol.Optional("enable_feeding_reminders", default=True): cv.boolean,
-            vol.Optional("auto_increment_counters", default=True): cv.boolean,
-            vol.Optional("strict_feeding_schedule", default=False): cv.boolean,
-        })
-
-        return self.async_show_form(
-            step_id="feeding_schedule",
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders={
-                "dog_name": self._data[CONF_DOG_NAME].title()
-            }
-        )
-
-    async def async_step_contacts(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle emergency contacts configuration."""
-        if user_input is not None:
-            # Merge all data and create entry
-            self._data.update(user_input)
-            
-            return self.async_create_entry(
-                title=f"Hundesystem - {self._data[CONF_DOG_NAME].title()}",
-                data=self._data,
-            )
-
-        data_schema = vol.Schema({
-            vol.Optional("emergency_contact_name"): cv.string,
-            vol.Optional("emergency_contact_phone"): cv.string,
-            vol.Optional("vet_name"): cv.string,
-            vol.Optional("vet_phone"): cv.string,
-            vol.Optional("vet_address"): cv.string,
-            vol.Optional("backup_contact_name"): cv.string,
-            vol.Optional("backup_contact_phone"): cv.string,
-            vol.Optional("microchip_id"): cv.string,
-            vol.Optional("insurance_company"): cv.string,
-            vol.Optional("insurance_number"): cv.string,
-        })
-
-        return self.async_show_form(
-            step_id="contacts",
-            data_schema=data_schema,
-            description_placeholders={
-                "dog_name": self._data[CONF_DOG_NAME].title()
-            }
-        )
-
-    async def _validate_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
-        """Validate the user input allows us to connect."""
-        
-        # Check number of existing dogs
-        existing_entries = self._async_current_entries()
-        if len(existing_entries) >= MAX_DOGS:
-            raise TooManyDogs(f"Maximum of {MAX_DOGS} dogs allowed")
-        
-        # Validate and normalize dog name
-        dog_name = user_input[CONF_DOG_NAME].lower().strip()
-        
-        if not dog_name:
-            raise InvalidDogName("Dog name cannot be empty")
-        
-        if not re.match(DOG_NAME_PATTERN, dog_name):
-            raise InvalidDogName("Dog name must start with a letter and contain only letters, numbers, and underscores")
-        
-        if len(dog_name) > 20:
-            raise InvalidDogName("Dog name must be 20 characters or less")
-        
-        # Check if dog already exists
-        for entry in existing_entries:
-            if entry.data.get(CONF_DOG_NAME, "").lower() == dog_name:
-                raise AlreadyConfigured(f"Dog '{dog_name}' is already configured")
-        
-        # Validate notify services
-        push_devices = user_input.get(CONF_PUSH_DEVICES, [])
-        if push_devices:
-            available_services = await self._get_notify_services()
-            available_service_values = [service["value"] for service in available_services]
-            
-            for device in push_devices:
-                if device not in available_service_values:
-                    raise CannotConnect(f"Notify service '{device}' not available")
-        
-        # Return normalized data
-        return {
-            CONF_DOG_NAME: dog_name,
-            CONF_PUSH_DEVICES: push_devices,
-            CONF_PERSON_TRACKING: user_input.get(CONF_PERSON_TRACKING, DEFAULT_PERSON_TRACKING),
-            CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, DEFAULT_CREATE_DASHBOARD),
-        }
-
-    async def _validate_advanced_input(self, user_input: dict[str, Any]) -> None:
-        """Validate advanced configuration input."""
-        
-        # Validate door sensor if provided
-        door_sensor = user_input.get(CONF_DOOR_SENSOR)
-        if door_sensor:
-            state = self.hass.states.get(door_sensor)
-            if not state:
-                raise InvalidSensor(f"Sensor '{door_sensor}' not found")
-            
-            if not door_sensor.startswith("binary_sensor."):
-                raise InvalidSensor("Door sensor must be a binary sensor")
-        
-        # Validate reset time
-        reset_time = user_input.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
-        try:
-            # Parse time to validate format
-            import datetime
-            datetime.datetime.strptime(reset_time, "%H:%M:%S")
-        except ValueError:
-            raise InvalidTime("Invalid reset time format")
-
-    async def _validate_feeding_times(self, user_input: dict[str, Any]) -> None:
-        """Validate feeding schedule times."""
-        import datetime
-        
-        times = []
-        for meal in ["morning", "lunch", "evening", "snack"]:
-            time_key = f"{meal}_time"
-            if time_key in user_input:
-                try:
-                    time_obj = datetime.datetime.strptime(user_input[time_key], "%H:%M:%S")
-                    times.append((meal, time_obj))
-                except ValueError:
-                    raise InvalidTime(f"Invalid time format for {meal}")
-        
-        # Check that times are in logical order (optional warning)
-        times.sort(key=lambda x: x[1])
-        expected_order = ["morning", "lunch", "snack", "evening"]
-        actual_order = [meal for meal, _ in times]
-        
-        if actual_order != [m for m in expected_order if m in actual_order]:
-            _LOGGER.warning("Feeding times might not be in logical order: %s", actual_order)
-
-    async def _get_notify_services(self) -> list[dict[str, str]]:
+    async def _get_notify_services(self) -> list[str]:
         """Get available notify services."""
-        services = []
-        
         try:
-            # Safety check for hass availability
-            if not self.hass:
-                _LOGGER.warning("HomeAssistant instance not available, returning default services")
-                return [{"value": "persistent_notification", "label": "Persistent Notification"}]
+            services = []
             
             # Get all notify services
             notify_services = self.hass.services.async_services().get("notify", {})
             
-            for service_name in notify_services.keys():
-                if service_name != "notify":  # Skip the base notify service
-                    # Create human readable label
-                    label = service_name.replace("_", " ").title()
-                    if service_name.startswith("mobile_app_"):
-                        person_name = service_name.replace("mobile_app_", "").title()
-                        label = f"Mobile App - {person_name}"
-                    elif service_name == "persistent_notification":
-                        label = "Persistent Notification"
-                    
+            for service_name in notify_services:
+                if service_name != "persistent_notification":
+                    display_name = service_name.replace("_", " ").title()
                     services.append({
-                        "value": service_name,
-                        "label": label
+                        "value": f"notify.{service_name}",
+                        "label": display_name
                     })
             
-            # Add some common services if not present
-            common_services = [
-                {"value": "persistent_notification", "label": "Persistent Notification"},
-                {"value": "telegram", "label": "Telegram"},
-                {"value": "pushbullet", "label": "Pushbullet"},
-                {"value": "discord", "label": "Discord"},
-            ]
+            # Add mobile app services if available
+            mobile_services = [s for s in notify_services if s.startswith("mobile_app_")]
+            for service in mobile_services:
+                device_name = service.replace("mobile_app_", "").replace("_", " ").title()
+                services.append({
+                    "value": f"notify.{service}",
+                    "label": f"📱 {device_name}"
+                })
             
-            for common in common_services:
-                if not any(s["value"] == common["value"] for s in services):
-                    # Only add if the service actually exists
-                    if self.hass.services.has_service("notify", common["value"]):
-                        services.append(common)
+            return services if services else [{"value": "", "label": "Keine Benachrichtigungsdienste verfügbar"}]
             
-        except Exception as err:
-            _LOGGER.warning("Could not get notify services: %s", err)
-            # Fallback services
-            services = [
-                {"value": "persistent_notification", "label": "Persistent Notification"}
-            ]
-        
-        return sorted(services, key=lambda x: x["label"])
+        except Exception as e:
+            _LOGGER.error("Error getting notify services: %s", e)
+            return [{"value": "", "label": "Fehler beim Laden der Dienste"}]
 
-    async def _get_door_sensors(self) -> list[dict[str, str]]:
-        """Get available door/window binary sensors."""
-        sensors = []
-        
+    async def _get_door_sensors(self) -> list[str]:
+        """Get available door sensors."""
         try:
-            # Safety check for hass availability
-            if not self.hass:
-                return []
-                
-            for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
-                state = self.hass.states.get(entity_id)
-                if state:
-                    # Look for door, window, opening sensors
-                    device_class = state.attributes.get("device_class", "").lower()
-                    friendly_name = state.attributes.get("friendly_name", entity_id)
+            door_sensors = []
+            
+            # Get entity registry
+            entity_registry = async_get_entity_registry(self.hass)
+            
+            # Find binary sensors with door device class
+            for entity in entity_registry.entities.values():
+                if (entity.domain == "binary_sensor" and 
+                    entity.device_class == "door" and 
+                    not entity.disabled_by):
                     
-                    if (device_class in ["door", "window", "opening"] or
-                        any(keyword in entity_id.lower() for keyword in ["door", "window", "tuer", "fenster"]) or
-                        any(keyword in friendly_name.lower() for keyword in ["door", "window", "tür", "fenster"])):
-                        
-                        sensors.append({
+                    state = self.hass.states.get(entity.entity_id)
+                    if state:
+                        friendly_name = state.attributes.get("friendly_name", entity.entity_id)
+                        door_sensors.append({
+                            "value": entity.entity_id,
+                            "label": friendly_name
+                        })
+            
+            # Also check current states for door sensors
+            for entity_id, state in self.hass.states.async_all():
+                if (entity_id.startswith("binary_sensor.") and 
+                    state.attributes.get("device_class") == "door"):
+                    
+                    # Avoid duplicates
+                    if not any(sensor["value"] == entity_id for sensor in door_sensors):
+                        friendly_name = state.attributes.get("friendly_name", entity_id)
+                        door_sensors.append({
                             "value": entity_id,
                             "label": friendly_name
                         })
-        except Exception as err:
-            _LOGGER.warning("Could not get door sensors: %s", err)
-        
-        return sorted(sensors, key=lambda x: x["label"])
+            
+            return door_sensors if door_sensors else [{"value": "", "label": "Keine Türsensoren gefunden"}]
+            
+        except Exception as e:
+            _LOGGER.error("Error getting door sensors: %s", e)
+            return [{"value": "", "label": "Fehler beim Laden der Sensoren"}]
 
     def _get_existing_dogs_list(self) -> str:
         """Get list of existing configured dogs."""
-        existing_entries = self._async_current_entries()
-        if not existing_entries:
-            return "Keine Hunde konfiguriert"
-        
-        dog_names = [entry.data.get(CONF_DOG_NAME, "").title() for entry in existing_entries]
-        return f"Existierende Hunde: {', '.join(dog_names)}"
+        try:
+            existing_entries = self.hass.config_entries.async_entries(DOMAIN)
+            if not existing_entries:
+                return "Noch keine Hunde konfiguriert"
+            
+            dog_names = [entry.data.get(CONF_DOG_NAME, "Unbekannt").title() 
+                        for entry in existing_entries]
+            
+            return f"Bereits konfiguriert: {', '.join(dog_names)}"
+            
+        except Exception as e:
+            _LOGGER.error("Error getting existing dogs: %s", e)
+            return "Fehler beim Laden vorhandener Konfigurationen"
 
     @staticmethod
     @callback
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
-        """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> HundesystemOptionsFlow:
+        """Get the options flow for this handler."""
+        return HundesystemOptionsFlow(config_entry)
 
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
+class HundesystemOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Hundesystem."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -429,20 +303,35 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
+
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            try:
+                # Validate options
+                door_sensor = user_input.get(CONF_DOOR_SENSOR, "")
+                if door_sensor:
+                    # Check if entity exists
+                    entity_registry = async_get_entity_registry(self.hass)
+                    if not entity_registry.async_get(door_sensor):
+                        state = self.hass.states.get(door_sensor)
+                        if not state:
+                            errors["door_sensor"] = "entity_not_found"
+
+                if not errors:
+                    return self.async_create_entry(title="", data=user_input)
+
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception in options flow")
+                errors["base"] = "unknown"
 
         # Get current configuration
-        current_config = self.config_entry.data
-        dog_name = current_config.get(CONF_DOG_NAME, "")
+        current_config = {**self.config_entry.data, **self.config_entry.options}
+        
+        # Get available services and sensors
+        notify_services = await self._get_notify_services()
+        door_sensors = await self._get_door_sensors()
 
-        # Get available notify services safely
-        try:
-            notify_services = await self._get_notify_services()
-        except Exception:
-            notify_services = [{"value": "persistent_notification", "label": "Persistent Notification"}]
-
-        data_schema = vol.Schema({
+        options_schema = vol.Schema({
             vol.Optional(
                 CONF_PUSH_DEVICES,
                 default=current_config.get(CONF_PUSH_DEVICES, [])
@@ -463,77 +352,70 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             ): cv.boolean,
             vol.Optional(
                 CONF_DOOR_SENSOR,
-                default=current_config.get(CONF_DOOR_SENSOR)
+                default=current_config.get(CONF_DOOR_SENSOR, "")
             ): selector({
                 "entity": {
-                    "filter": {
-                        "domain": "binary_sensor"
-                    }
+                    "domain": "binary_sensor",
+                    "device_class": "door"
                 }
-            }),
-            vol.Optional(
-                CONF_RESET_TIME,
-                default=current_config.get(CONF_RESET_TIME, DEFAULT_RESET_TIME)
-            ): selector({
-                "time": {}
-            }),
+            }) if door_sensors else cv.string,
         })
 
         return self.async_show_form(
             step_id="init",
-            data_schema=data_schema,
+            data_schema=options_schema,
+            errors=errors,
             description_placeholders={
-                "dog_name": dog_name.title()
+                "dog_name": self.config_entry.data.get(CONF_DOG_NAME, "").title()
             }
         )
 
-    async def _get_notify_services(self) -> list[dict[str, str]]:
-        """Get available notify services for options."""
-        services = []
-        
+    async def _get_notify_services(self) -> list[str]:
+        """Get available notify services."""
         try:
-            if not self.hass:
-                return [{"value": "persistent_notification", "label": "Persistent Notification"}]
-                
+            services = []
+            
+            # Get all notify services
             notify_services = self.hass.services.async_services().get("notify", {})
             
-            for service_name in notify_services.keys():
-                if service_name != "notify":
-                    label = service_name.replace("_", " ").title()
-                    if service_name.startswith("mobile_app_"):
-                        person_name = service_name.replace("mobile_app_", "").title()
-                        label = f"Mobile App - {person_name}"
-                    
+            for service_name in notify_services:
+                if service_name != "persistent_notification":
+                    display_name = service_name.replace("_", " ").title()
                     services.append({
-                        "value": service_name,
-                        "label": label
+                        "value": f"notify.{service_name}",
+                        "label": display_name
                     })
-        except Exception as err:
-            _LOGGER.warning("Could not get notify services in options: %s", err)
-            services = [{"value": "persistent_notification", "label": "Persistent Notification"}]
-        
-        return sorted(services, key=lambda x: x["label"])
+            
+            return services if services else [{"value": "", "label": "Keine Benachrichtigungsdienste verfügbar"}]
+            
+        except Exception as e:
+            _LOGGER.error("Error getting notify services in options: %s", e)
+            return [{"value": "", "label": "Fehler beim Laden der Dienste"}]
 
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidDogName(HomeAssistantError):
-    """Error to indicate invalid dog name."""
-
-
-class AlreadyConfigured(HomeAssistantError):
-    """Error to indicate dog is already configured."""
-
-
-class TooManyDogs(HomeAssistantError):
-    """Error to indicate too many dogs configured."""
-
-
-class InvalidSensor(HomeAssistantError):
-    """Error to indicate invalid sensor."""
-
-
-class InvalidTime(HomeAssistantError):
-    """Error to indicate invalid time format."""
+    async def _get_door_sensors(self) -> list[str]:
+        """Get available door sensors."""
+        try:
+            door_sensors = []
+            
+            # Get entity registry
+            entity_registry = async_get_entity_registry(self.hass)
+            
+            # Find binary sensors with door device class
+            for entity in entity_registry.entities.values():
+                if (entity.domain == "binary_sensor" and 
+                    entity.device_class == "door" and 
+                    not entity.disabled_by):
+                    
+                    state = self.hass.states.get(entity.entity_id)
+                    if state:
+                        friendly_name = state.attributes.get("friendly_name", entity.entity_id)
+                        door_sensors.append({
+                            "value": entity.entity_id,
+                            "label": friendly_name
+                        })
+            
+            return door_sensors if door_sensors else [{"value": "", "label": "Keine Türsensoren gefunden"}]
+            
+        except Exception as e:
+            _LOGGER.error("Error getting door sensors in options: %s", e)
+            return [{"value": "", "label": "Fehler beim Laden der Sensoren"}]
