@@ -1,521 +1,566 @@
-trigger_feeding_reminder:
-  name: Fütterungserinnerung senden
-  description: Sendet eine Benachrichtigung zur Fütterungserinnerung für einen oder alle Hunde
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
+feed_dog:
+  name: Hund füttern
+  description: Markiert eine Mahlzeit als gegeben und aktualisiert die Fütterungsstatistiken.
+  target: {}
   fields:
     meal_type:
-      name: Mahlzeit
+      name: Mahlzeit-Typ
       description: Art der Mahlzeit
-      required: true
-      example: "morning"
+      required: false
+      default: ""
       selector:
         select:
           options:
-            - value: "morning"
-              label: "Frühstück"
-            - value: "lunch" 
-              label: "Mittagessen"
-            - value: "evening"
-              label: "Abendessen"
-            - value: "snack"
-              label: "Leckerli"
-    message:
-      name: Nachricht
-      description: Benutzerdefinierte Erinnerungsnachricht (optional)
+            - label: "Frühstück"
+              value: "morning"
+            - label: "Mittagessen"
+              value: "lunch"
+            - label: "Abendessen"
+              value: "evening"
+            - label: "Leckerli"
+              value: "snack"
+    portion_size:
+      name: Portionsgröße
+      description: Größe der Portion
       required: false
-      example: "Zeit für das Frühstück!"
+      default: "normal"
       selector:
-        text:
-          multiline: false
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
+        select:
+          options:
+            - label: "Klein"
+              value: "small"
+            - label: "Normal"
+              value: "normal"
+            - label: "Groß"
+              value: "large"
+    notes:
+      name: Notizen
+      description: Zusätzliche Notizen zur Fütterung
       required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-daily_reset:
-  name: Täglicher Reset
-  description: Setzt alle Tagesstatistiken für einen oder alle Hunde zurück
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
-      required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-send_notification:
-  name: Benachrichtigung senden
-  description: Sendet eine benutzerdefinierte Benachrichtigung
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    title:
-      name: Titel
-      description: Titel der Benachrichtigung
-      required: true
-      example: "Hundesystem Erinnerung"
-      selector:
-        text:
-          multiline: false
-    message:
-      name: Nachricht
-      description: Inhalt der Benachrichtigung
-      required: true
-      example: "Das ist eine Testnachricht"
       selector:
         text:
           multiline: true
-    target:
-      name: Ziel
-      description: Spezifisches Benachrichtigungsziel (optional)
-      required: false
-      example: "mobile_app_smartphone"
-      selector:
-        text:
-          multiline: false
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
-      required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-    data:
-      name: Zusätzliche Daten
-      description: Zusätzliche Daten für die Benachrichtigung (z.B. Aktionen)
-      required: false
-      example: '{"actions": [{"action": "reply", "title": "Antworten"}]}'
-      selector:
-        object:
 
-set_visitor_mode:
-  name: Besuchsmodus setzen
-  description: Aktiviert oder deaktiviert den Besuchsmodus
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
+walk_dog:
+  name: Gassi gehen
+  description: Zeichnet einen Spaziergang auf und aktualisiert die Aktivitätsstatistiken.
+  target: {}
   fields:
-    enabled:
-      name: Aktiviert
-      description: Besuchsmodus aktivieren oder deaktivieren
-      required: true
-      example: true
-      selector:
-        boolean:
-    visitor_name:
-      name: Besuchername
-      description: Name des Besuchers oder Hundesitters (optional)
-      required: false
-      example: "Maria Müller"
-      selector:
-        text:
-          multiline: false
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
-      required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-log_activity:
-  name: Aktivität protokollieren
-  description: Protokolliert eine Hundeaktivität mit optionalen Details
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    activity_type:
-      name: Aktivitätstyp
-      description: Art der Aktivität
-      required: true
-      example: "walk"
-      selector:
-        select:
-          options:
-            - value: "walk"
-              label: "Gassi gehen"
-            - value: "outside"
-              label: "Draußen"
-            - value: "play"
-              label: "Spielen"
-            - value: "training"
-              label: "Training"
-            - value: "poop"
-              label: "Geschäft gemacht"
-            - value: "vet"
-              label: "Tierarzt"
-            - value: "grooming"
-              label: "Pflege"
-            - value: "other"
-              label: "Sonstiges"
     duration:
       name: Dauer
-      description: Dauer der Aktivität in Minuten (optional)
+      description: Dauer des Spaziergangs in Minuten
       required: false
-      example: 30
+      default: 30
       selector:
         number:
           min: 1
-          max: 480
+          max: 300
           unit_of_measurement: "min"
+    distance:
+      name: Distanz
+      description: Zurückgelegte Distanz in Kilometern
+      required: false
+      selector:
+        text:
+          type: "text"
     notes:
       name: Notizen
-      description: Zusätzliche Notizen zur Aktivität (optional)
+      description: Notizen zum Spaziergang
       required: false
-      example: "Schöner Spaziergang im Park, hat viel geschnüffelt"
       selector:
         text:
           multiline: true
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
+    weather:
+      name: Wetter
+      description: Wetterbedingungen während des Spaziergangs
       required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-add_dog:
-  name: Neuen Hund hinzufügen
-  description: Fügt einen neuen Hund zum System hinzu (experimentell)
-  fields:
-    dog_name:
-      name: Hundename
-      description: Name des neuen Hundes (nur Buchstaben, Zahlen, Unterstriche)
-      required: true
-      example: "bella"
-      selector:
-        text:
-          multiline: false
-    push_devices:
-      name: Push-Geräte
-      description: Liste der Benachrichtigungsgeräte (optional)
-      required: false
-      example: ["mobile_app_smartphone", "telegram"]
-      selector:
-        select:
-          options: []
-          multiple: true
-          mode: dropdown
-    door_sensor:
-      name: Türsensor
-      description: Sensor zur automatischen Erkennung von Türbewegungen (optional)
-      required: false
-      example: "binary_sensor.garden_door"
-      selector:
-        entity:
-          filter:
-            domain: binary_sensor
-    create_dashboard:
-      name: Dashboard erstellen
-      description: Automatisch ein Dashboard für den neuen Hund erstellen
-      required: false
-      default: true
-      selector:
-        boolean:
-
-test_notification:
-  name: Test-Benachrichtigung
-  description: Sendet eine Test-Benachrichtigung zur Überprüfung der Konfiguration
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    dog_name:
-      name: Hundename
-      description: Name des spezifischen Hundes (optional, sonst alle Hunde)
-      required: false
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-emergency_contact:
-  name: Notfallkontakt
-  description: Sendet eine Notfallbenachrichtigung an alle konfigurierten Kontakte
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    emergency_type:
-      name: Art des Notfalls
-      description: Typ des Notfalls
-      required: true
-      example: "medical"
       selector:
         select:
           options:
-            - value: "medical"
-              label: "Medizinischer Notfall"
-            - value: "lost"
-              label: "Hund vermisst"
-            - value: "injury"
-              label: "Verletzung"
-            - value: "behavioral"
-              label: "Verhaltensproblem"
-            - value: "other"
-              label: "Sonstiger Notfall"
-    message:
-      name: Notfallnachricht
-      description: Beschreibung des Notfalls
-      required: true
-      example: "Rex zeigt Anzeichen von Unwohlsein und braucht sofortige Hilfe"
-      selector:
-        text:
-          multiline: true
-    location:
-      name: Standort
-      description: Aktueller Standort (optional)
-      required: false
-      example: "Zuhause / Park Mitte / Tierarzt Dr. Schmidt"
-      selector:
-        text:
-          multiline: false
-    contact_vet:
-      name: Tierarzt kontaktieren
-      description: Auch den Tierarzt benachrichtigen
-      required: false
-      default: false
-      selector:
-        boolean:
-    dog_name:
-      name: Hundename
-      description: Name des betroffenen Hundes
-      required: true
-      example: "rex"
-      selector:
-        text:
-          multiline: false
+            - label: "Sonnig"
+              value: "sunny"
+            - label: "Bewölkt"
+              value: "cloudy"
+            - label: "Regen"
+              value: "rainy"
+            - label: "Schnee"
+              value: "snowy"
+            - label: "Windig"
+              value: "windy"
 
-health_check:
-  name: Gesundheitscheck
-  description: Führt eine Bewertung des Gesundheitszustands durch
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
+play_with_dog:
+  name: Mit Hund spielen
+  description: Zeichnet eine Spielsession auf und aktualisiert die Aktivitätsstatistiken.
+  target: {}
   fields:
-    check_type:
-      name: Art der Untersuchung
-      description: Typ des Gesundheitschecks
+    duration:
+      name: Dauer
+      description: Dauer der Spielsession in Minuten
+      required: false
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 180
+          unit_of_measurement: "min"
+    play_type:
+      name: Spiel-Art
+      description: Art des Spiels
       required: false
       default: "general"
       selector:
         select:
           options:
-            - value: "general"
-              label: "Allgemein"
-            - value: "feeding"
-              label: "Fütterung"
-            - value: "activity"
-              label: "Aktivität"
-            - value: "behavior"
-              label: "Verhalten"
-            - value: "symptoms"
-              label: "Symptome"
-    notes:
-      name: Beobachtungen
-      description: Spezielle Beobachtungen oder Symptome
+            - label: "Allgemein"
+              value: "general"
+            - label: "Apportieren"
+              value: "fetch"
+            - label: "Tauziehen"
+              value: "tug"
+            - label: "Freies Spiel"
+              value: "free_play"
+            - label: "Verstecken"
+              value: "hide_seek"
+            - label: "Agility"
+              value: "agility"
+    intensity:
+      name: Intensität
+      description: Intensität des Spiels
       required: false
-      example: "Hund wirkt müde und trinkt viel Wasser"
+      default: "medium"
+      selector:
+        select:
+          options:
+            - label: "Niedrig"
+              value: "low"
+            - label: "Mittel"
+              value: "medium"
+            - label: "Hoch"
+              value: "high"
+    notes:
+      name: Notizen
+      description: Notizen zur Spielsession
+      required: false
       selector:
         text:
           multiline: true
-    temperature:
-      name: Körpertemperatur
-      description: Gemessene Körpertemperatur in °C (optional)
+
+training_session:
+  name: Training
+  description: Zeichnet eine Trainingsession auf.
+  target: {}
+  fields:
+    duration:
+      name: Dauer
+      description: Dauer des Trainings in Minuten
       required: false
-      example: 38.5
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: "min"
+    training_type:
+      name: Training-Art
+      description: Art des Trainings
+      required: false
+      default: "basic"
+      selector:
+        select:
+          options:
+            - label: "Grundkommandos"
+              value: "basic"
+            - label: "Fortgeschrittene Kommandos"
+              value: "advanced"
+            - label: "Tricks"
+              value: "tricks"
+            - label: "Sozialverhalten"
+              value: "social"
+            - label: "Leinenführigkeit"
+              value: "leash"
+            - label: "Rückruf"
+              value: "recall"
+    commands:
+      name: Kommandos
+      description: Geübte Kommandos
+      required: false
+      selector:
+        text:
+          multiline: true
+    success_rate:
+      name: Erfolgsrate
+      description: Erfolgsrate des Trainings
+      required: false
+      default: "good"
+      selector:
+        select:
+          options:
+            - label: "Schlecht"
+              value: "poor"
+            - label: "Gut"
+              value: "good"
+            - label: "Ausgezeichnet"
+              value: "excellent"
+    notes:
+      name: Notizen
+      description: Notizen zum Training
+      required: false
+      selector:
+        text:
+          multiline: true
+
+health_check:
+  name: Gesundheitscheck
+  description: Führt einen Gesundheitscheck durch und aktualisiert die Gesundheitsdaten.
+  target: {}
+  fields:
+    health_status:
+      name: Gesundheitsstatus
+      description: Aktueller Gesundheitsstatus
+      required: false
+      selector:
+        select:
+          options:
+            - label: "Ausgezeichnet"
+              value: "Ausgezeichnet"
+            - label: "Gut"
+              value: "Gut"
+            - label: "Normal"
+              value: "Normal"
+            - label: "Schwach"
+              value: "Schwach"
+            - label: "Krank"
+              value: "Krank"
+            - label: "Notfall"
+              value: "Notfall"
+    weight:
+      name: Gewicht
+      description: Aktuelles Gewicht in kg
+      required: false
+      selector:
+        number:
+          min: 0.5
+          max: 100
+          step: 0.1
+          unit_of_measurement: "kg"
+    temperature:
+      name: Temperatur
+      description: Körpertemperatur in °C
+      required: false
       selector:
         number:
           min: 35.0
           max: 42.0
           step: 0.1
           unit_of_measurement: "°C"
-    weight:
-      name: Gewicht
-      description: Aktuelles Gewicht in kg (optional)
+    mood:
+      name: Stimmung
+      description: Aktuelle Stimmung
       required: false
-      example: 25.5
-      selector:
-        number:
-          min: 0.1
-          max: 100.0
-          step: 0.1
-          unit_of_measurement: "kg"
-    dog_name:
-      name: Hundename
-      description: Name des zu untersuchenden Hundes
-      required: true
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-
-schedule_reminder:
-  name: Erinnerung planen
-  description: Plant eine zukünftige Erinnerung für bestimmte Aktivitäten
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
-  fields:
-    reminder_type:
-      name: Erinnerungstyp
-      description: Art der Erinnerung
-      required: true
-      example: "vet_appointment"
       selector:
         select:
           options:
-            - value: "feeding"
-              label: "Fütterung"
-            - value: "walk"
-              label: "Gassi gehen"
-            - value: "medication"
-              label: "Medikament"
-            - value: "vet_appointment"
-              label: "Tierarzttermin"
-            - value: "grooming"
-              label: "Pflege"
-            - value: "training"
-              label: "Training"
-            - value: "custom"
-              label: "Benutzerdefiniert"
-    scheduled_time:
-      name: Geplante Zeit
-      description: Datum und Uhrzeit für die Erinnerung
-      required: true
-      example: "2024-01-15 14:30:00"
+            - label: "Sehr glücklich"
+              value: "Sehr glücklich"
+            - label: "Glücklich"
+              value: "Glücklich"
+            - label: "Neutral"
+              value: "Neutral"
+            - label: "Gestresst"
+              value: "Gestresst"
+            - label: "Ängstlich"
+              value: "Ängstlich"
+            - label: "Krank"
+              value: "Krank"
+    appetite:
+      name: Appetit
+      description: Aktueller Appetit
+      required: false
       selector:
-        datetime:
-    message:
-      name: Erinnerungsnachricht
-      description: Text der Erinnerung
-      required: true
-      example: "Tierarzttermin um 15:00 Uhr nicht vergessen!"
+        select:
+          options:
+            - label: "Kein Appetit"
+              value: "Kein Appetit"
+            - label: "Wenig Appetit"
+              value: "Wenig Appetit"
+            - label: "Normal"
+              value: "Normal"
+            - label: "Guter Appetit"
+              value: "Guter Appetit"
+            - label: "Sehr hungrig"
+              value: "Sehr hungrig"
+    energy_level:
+      name: Energie Level
+      description: Aktuelles Energie Level
+      required: false
+      selector:
+        select:
+          options:
+            - label: "Sehr müde"
+              value: "Sehr müde"
+            - label: "Müde"
+              value: "Müde"
+            - label: "Normal"
+              value: "Normal"
+            - label: "Energiegeladen"
+              value: "Energiegeladen"
+            - label: "Hyperaktiv"
+              value: "Hyperaktiv"
+    notes:
+      name: Notizen
+      description: Gesundheitsnotizen
+      required: false
       selector:
         text:
           multiline: true
-    repeat:
-      name: Wiederholen
-      description: Erinnerung wiederholen
+
+medication_given:
+  name: Medikament gegeben
+  description: Markiert ein Medikament als gegeben.
+  target: {}
+  fields:
+    medication:
+      name: Medikament
+      description: Name des Medikaments
       required: false
-      default: false
       selector:
-        boolean:
-    repeat_interval:
-      name: Wiederholungsintervall
-      description: Wie oft wiederholen (nur wenn Wiederholen aktiviert)
+        text:
+          type: "text"
+    dosage:
+      name: Dosierung
+      description: Dosierung des Medikaments
       required: false
-      example: "daily"
+      selector:
+        text:
+          type: "text"
+    time:
+      name: Zeit
+      description: Zeit der Medikamentengabe
+      required: false
+      selector:
+        time: {}
+    notes:
+      name: Notizen
+      description: Notizen zur Medikamentengabe
+      required: false
+      selector:
+        text:
+          multiline: true
+
+vet_visit:
+  name: Tierarztbesuch
+  description: Zeichnet einen Tierarztbesuch auf.
+  target: {}
+  fields:
+    visit_type:
+      name: Besuchstyp
+      description: Art des Tierarztbesuchs
+      required: false
+      default: "routine"
       selector:
         select:
           options:
-            - value: "daily"
-              label: "Täglich"
-            - value: "weekly"
-              label: "Wöchentlich"
-            - value: "monthly"
-              label: "Monatlich"
-    dog_name:
-      name: Hundename
-      description: Name des Hundes für die Erinnerung
-      required: true
-      example: "rex"
+            - label: "Routine-Untersuchung"
+              value: "routine"
+            - label: "Impfung"
+              value: "vaccination"
+            - label: "Notfall"
+              value: "emergency"
+            - label: "Nachuntersuchung"
+              value: "followup"
+            - label: "Operation"
+              value: "surgery"
+            - label: "Zahnreinigung"
+              value: "dental"
+    diagnosis:
+      name: Diagnose
+      description: Diagnose des Tierarztes
+      required: false
       selector:
         text:
-          multiline: false
+          multiline: true
+    treatment:
+      name: Behandlung
+      description: Durchgeführte Behandlung
+      required: false
+      selector:
+        text:
+          multiline: true
+    next_appointment:
+      name: Nächster Termin
+      description: Datum des nächsten Termins
+      required: false
+      selector:
+        datetime: {}
+    cost:
+      name: Kosten
+      description: Kosten des Besuchs
+      required: false
+      selector:
+        text:
+          type: "text"
+    notes:
+      name: Notizen
+      description: Zusätzliche Notizen
+      required: false
+      selector:
+        text:
+          multiline: true
 
-update_dog_info:
-  name: Hundeinformationen aktualisieren
-  description: Aktualisiert grundlegende Informationen über den Hund
-  target:
-    entity:
-      domain: sensor
-      integration: hundesystem
+grooming_session:
+  name: Pflegesession
+  description: Zeichnet eine Pflegesession auf.
+  target: {}
   fields:
-    dog_name:
-      name: Hundename
-      description: Name des Hundes
-      required: true
-      example: "rex"
-      selector:
-        text:
-          multiline: false
-    breed:
-      name: Rasse
-      description: Rasse des Hundes (optional)
+    grooming_type:
+      name: Pflege-Art
+      description: Art der Pflege
       required: false
-      example: "Golden Retriever"
+      default: "basic"
       selector:
-        text:
-          multiline: false
-    age_years:
-      name: Alter (Jahre)
-      description: Alter in Jahren (optional)
+        select:
+          options:
+            - label: "Grundpflege"
+              value: "basic"
+            - label: "Vollpflege"
+              value: "full"
+            - label: "Baden"
+              value: "bath"
+            - label: "Bürsten"
+              value: "brush"
+            - label: "Krallen schneiden"
+              value: "nails"
+            - label: "Ohren reinigen"
+              value: "ears"
+            - label: "Zähne putzen"
+              value: "teeth"
+    duration:
+      name: Dauer
+      description: Dauer der Pflegesession in Minuten
       required: false
-      example: 5
+      default: 30
       selector:
         number:
-          min: 0
-          max: 30
-          step: 1
-          unit_of_measurement: "Jahre"
-    weight:
-      name: Gewicht
-      description: Aktuelles Gewicht in kg (optional)
+          min: 5
+          max: 180
+          unit_of_measurement: "min"
+    professional:
+      name: Professionell
+      description: Wurde die Pflege professionell durchgeführt
       required: false
-      example: 25.5
+      default: false
       selector:
-        number:
-          min: 0.1
-          max: 100.0
-          step: 0.1
-          unit_of_measurement: "kg"
-    microchip_id:
-      name: Mikrochip ID
-      description: Mikrochip-Identifikationsnummer (optional)
+        boolean: {}
+    notes:
+      name: Notizen
+      description: Notizen zur Pflegesession
       required: false
-      example: "123456789012345"
       selector:
         text:
-          multiline: false
-    vet_contact:
-      name: Tierarzt Kontakt
-      description: Kontaktinformationen des Tierarztes (optional)
+          multiline: true
+
+activate_emergency_mode:
+  name: Notfallmodus aktivieren
+  description: Aktiviert oder deaktiviert den Notfallmodus für den Hund.
+  target: {}
+  fields:
+    activate:
+      name: Aktivieren
+      description: Notfallmodus aktivieren oder deaktivieren
       required: false
-      example: "Dr. Schmidt, Tel: 0123-456789"
+      default: true
+      selector:
+        boolean: {}
+    reason:
+      name: Grund
+      description: Grund für den Notfall
+      required: false
       selector:
         text:
-          multiline: false
-    emergency_contact:
-      name: Notfallkontakt
-      description: Notfallkontakt (optional)
+          multiline: true
+    contact_vet:
+      name: Tierarzt kontaktieren
+      description: Soll der Tierarzt automatisch kontaktiert werden
       required: false
-      example: "Maria Müller, Tel: 0987-654321"
+      default: false
+      selector:
+        boolean: {}
+
+toggle_visitor_mode:
+  name: Besuchsmodus umschalten
+  description: Aktiviert oder deaktiviert den Besuchsmodus.
+  target: {}
+  fields:
+    activate:
+      name: Aktivieren
+      description: Besuchsmodus aktivieren oder deaktivieren
+      required: false
+      selector:
+        boolean: {}
+    visitor_name:
+      name: Besuchername
+      description: Name des Besuchers
+      required: false
       selector:
         text:
-          multiline: false
+          type: "text"
+    start_time:
+      name: Startzeit
+      description: Startzeit des Besuchs
+      required: false
+      selector:
+        datetime: {}
+    end_time:
+      name: Endzeit
+      description: Endzeit des Besuchs
+      required: false
+      selector:
+        datetime: {}
+
+daily_reset:
+  name: Tagesreset
+  description: Setzt alle täglichen Werte zurück.
+  target: {}
+  fields:
+    date:
+      name: Datum
+      description: Datum für den Reset (Standard: heute)
+      required: false
+      selector:
+        date: {}
+
+generate_report:
+  name: Bericht generieren
+  description: Generiert einen umfassenden Bericht über den Hund.
+  target: {}
+  fields:
+    report_type:
+      name: Berichtstyp
+      description: Art des Berichts
+      required: false
+      default: "daily"
+      selector:
+        select:
+          options:
+            - label: "Tagesbericht"
+              value: "daily"
+            - label: "Wochenbericht"
+              value: "weekly"
+            - label: "Monatsbericht"
+              value: "monthly"
+            - label: "Jahresbericht"
+              value: "yearly"
+    include_charts:
+      name: Diagramme einschließen
+      description: Sollen Diagramme im Bericht enthalten sein
+      required: false
+      default: false
+      selector:
+        boolean: {}
+    email_report:
+      name: Bericht per E-Mail
+      description: Soll der Bericht per E-Mail versandt werden
+      required: false
+      default: false
+      selector:
+        boolean: {}
