@@ -594,11 +594,10 @@ async def _create_input_numbers(hass: HomeAssistant, dog_name: str) -> Dict[str,
         (f"{dog_name}_noise_sensitivity", "Geräuschempfindlichkeit", 1, 1, 10, 5, "Level", "mdi:volume-high"),
     ]
     
-    results = await _create_helpers_for_domain_robust(hass, "input_number", number_entities, dog_name)
-    return results
+    return await _create_helpers_for_domain_robust(hass, "input_number", number_entities, dog_name)
 
 
-async def _create_input_selects(hass: HomeAssistant, dog_name: str) -> None:
+async def _create_input_selects(hass: HomeAssistant, dog_name: str) -> Dict[str, Any]:
     """Create input_select entities for comprehensive categorical choices."""
     
     select_entities = [
@@ -684,8 +683,83 @@ async def _create_input_selects(hass: HomeAssistant, dog_name: str) -> None:
         ], "Moderat", ICONS["grooming"]),
     ]
     
-    results = await _create_helpers_for_domain_robust(hass, "input_select", select_entities, dog_name)
-    return results
+    return await _create_helpers_for_domain_robust(hass, "input_select", select_entities, dog_name)
+
+
+async def _post_creation_verification(hass: HomeAssistant, dog_name: str, results: Dict[str, Any]) -> None:
+    """Post-creation verification and reporting."""
+    
+    try:
+        # Verify critical entities
+        critical_entities = [
+            f"input_boolean.{dog_name}_feeding_morning",
+            f"input_boolean.{dog_name}_outside",
+            f"counter.{dog_name}_outside_count",
+            f"input_text.{dog_name}_notes",
+            f"input_datetime.{dog_name}_last_outside",
+            f"input_select.{dog_name}_health_status",
+            f"input_number.{dog_name}_weight",
+        ]
+        
+        verified_entities = []
+        missing_entities = []
+        
+        for entity_id in critical_entities:
+            if hass.states.get(entity_id):
+                verified_entities.append(entity_id)
+            else:
+                missing_entities.append(entity_id)
+        
+        verification_rate = len(verified_entities) / len(critical_entities) * 100
+        
+        _LOGGER.info("Post-creation verification for %s: %.1f%% critical entities verified (%d/%d)", 
+                     dog_name, verification_rate, len(verified_entities), len(critical_entities))
+        
+        if missing_entities:
+            _LOGGER.warning("Missing critical entities for %s: %s", dog_name, missing_entities)
+        
+        # Create detailed status report
+        status_report = {
+            "dog_name": dog_name,
+            "total_created": results["total_created"],
+            "total_failed": results["total_failed"],
+            "verification_rate": verification_rate,
+            "critical_entities_verified": len(verified_entities),
+            "critical_entities_missing": len(missing_entities),
+            "domain_breakdown": results["domain_results"],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Send completion notification
+        notification_title = f"🐶 Hundesystem Setup - {dog_name.title()}"
+        if verification_rate >= 90:
+            notification_message = f"✅ Erfolgreich! {results['total_created']} Entitäten erstellt (Verifikation: {verification_rate:.1f}%)"
+            notification_icon = "✅"
+        elif verification_rate >= 70:
+            notification_message = f"⚠️ Teilweise erfolgreich! {results['total_created']} Entitäten erstellt (Verifikation: {verification_rate:.1f}%)"
+            notification_icon = "⚠️"
+        else:
+            notification_message = f"❌ Setup unvollständig! {results['total_created']} Entitäten erstellt (Verifikation: {verification_rate:.1f}%)"
+            notification_icon = "❌"
+        
+        try:
+            await hass.services.async_call(
+                "persistent_notification", "create",
+                {
+                    "title": notification_title,
+                    "message": f"{notification_icon} {notification_message}\n\nDomains: {len(results['domain_results'])} verarbeitet\nFehlgeschlagen: {results['total_failed']}",
+                    "notification_id": f"hundesystem_setup_{dog_name}_{datetime.now().timestamp()}"
+                },
+                blocking=False
+            )
+        except Exception as e:
+            _LOGGER.warning("Could not send setup notification: %s", e)
+        
+        return status_report
+        
+    except Exception as e:
+        _LOGGER.error("Error in post-creation verification for %s: %s", dog_name, e)
+        return {"error": str(e)}
 
 
 async def verify_helper_creation(hass: HomeAssistant, dog_name: str) -> dict:
